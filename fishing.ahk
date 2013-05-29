@@ -164,77 +164,18 @@ MakeLogStrOfGetPulBarProgr(Stage, i, PLFlag, LFlag, PRFlag, RFlag, Progr)
 
 GetPullingBarProgress( PullingDirection, ByRef LogStr, isNewRun = 0 )
 {
-	static LastProgressValue
+	; Left limit = 270, Middle limit = 380, Right limit = 490
 	LogStr := ""
-	
-	If ( isNewRun )
-		LastProgressValue := 1
-	
-	ProgressFilledOn := 11
-	i := 10
+
 	Prev_L_Flag := TestPixelColor( 380 - i * 11, 460, 0x00CC00)
-	If ( not Prev_L_Flag )
-	{
-		ProgressFilledOn := LastProgressValue
-		LogStr := LogStr . MakeLogStrOfGetPulBarProgr(1, 0, Prev_L_Flag, 0, 0, 0, ProgressFilledOn)
-	}
-	Else 
-	{
-		Prev_R_Flag := TestPixelColor( 380 + i * 11, 460, 0x00CC00)
-		If ( Prev_R_Flag )
-		{
-			ProgressFilledOn := 21
-			LogStr := LogStr . MakeLogStrOfGetPulBarProgr(2, 0, Prev_L_Flag, 0, Prev_R_Flag, 0, ProgressFilledOn)
-		}
-		
-		i := 9
-		
-		While ( i )
-		{
-			L_Flag := TestPixelColor( 380 - i * 11, 460, 0x00CC00)
-			If ( L_Flag != Prev_L_Flag ) 
-			{
-				ProgressFilledOn := 11 - i
-				LogStr := LogStr . MakeLogStrOfGetPulBarProgr(3, i, Prev_L_Flag, L_Flag, Prev_R_Flag, 0, ProgressFilledOn)
-				Break
-			}
 
-			R_Flag := TestPixelColor( 380 + i * 11, 460, 0x00CC00)
-			If ( R_Flag != Prev_R_Flag ) 
-			{
-				ProgressFilledOn := 11 + i
-				LogStr := LogStr . MakeLogStrOfGetPulBarProgr(4, i, Prev_L_Flag, L_Flag, Prev_R_Flag, R_Flag, ProgressFilledOn)
-				Break
-			}
-
-			LogStr := LogStr . MakeLogStrOfGetPulBarProgr(5, i, Prev_L_Flag, L_Flag, Prev_R_Flag, R_Flag, ProgressFilledOn)
-			i := i - 1
-			Prev_L_Flag := L_Flag
-			Prev_R_Flag := R_Flag
-		}
-	}
-	LastProgressValue := ProgressFilledOn
-	Return ProgressFilledOn
-}
-	
-GetPullingBarProgress_Old()
-{
-	ProgressFilledOn := 18
-	
-	While ( !TestPixelColor( 255 + (ProgressFilledOn+1) * 12, 460, 0x00CC00) and ProgressFilledOn > 0 ) 
-			ProgressFilledOn := ProgressFilledOn - 1
-
-	If ( !TestPixelColor( 267, 460, 0x00CC00 ) )
-		ProgressFilledOn := 0
-			
-	Return ProgressFilledOn
+	Return ( PullingDirection ? 20 : 1 )
 }
 
 IsPullingBarOn()
 {
+	; Also can be used points 255, 455 and 495, 455
 	If (    TestPixelColor( 199, 455, 0x0 ) 
-		; and TestPixelColor( 255, 455, 0x0 ) 
-		; and TestPixelColor( 495, 455, 0x0 ) 
 		and TestPixelColor( 551, 455, 0x0 ) )
 	{
 		; WriteLineToLogfile( "{IsPullingBarOn}", "Pulling bar is ON" )
