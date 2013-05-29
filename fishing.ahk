@@ -1,4 +1,5 @@
 	SetWorkingDir, %A_ScriptDir%
+	SetBatchLines, -1
 
 	DebugFile = %A_ScriptDir%\Report_Run_%A_Now%.log
 	DataFile = %A_ScriptDir%\Pulling_data.log
@@ -30,15 +31,15 @@ StartFishing:
 	PullingResult := -1
 	While (PullingResult = -1)
 		If (IsFishCatched()) {
-			PullingResult := 1
+			PullingResult := "`nCatched"
 			FishesInFishcage := FishesInFishcage + 1
 		}
 		Else
 			If (IsCollectionCatched())
-				PullingResult := 2
+				PullingResult := "`nCollection"
 			Else
 				If (IsMessageOn())
-					PullingResult := 0
+					PullingResult := "`nLost"
 
 	WriteLineToDatafile( PullingResult, Pattern )
 	
@@ -62,58 +63,76 @@ ExitApp
 
 ; ======================== Body end ====================================================
 
-PullingTheFish()
+WaitForPullingBar()
 {
-	RightPullingLimit := 16
-	LeftPullingLimit  := 7
-
-	Click down
-	PullingDirection := 1
-	PrevRodOverloadedState := 0
-	
-	PullingPattern := ""
-	
 	i := 0
 	while ( ( not IsPullingBarOn() ) and ( i < 1000 ) )
 	{
 		i := i + 1
 	}
+}
 	
-	while ( IsPullingBarOn() and PullingProgress < 2 )
-	{
-		PullingProgress := GetPullingBarProgress()
-		PullingPattern := PullingPattern . PullingProgress 
-	}
+PullingTheFish()
+{
+	RightPullingLimit := 16
+	LeftPullingLimit  := 7
+	PrevOverloadState := 0
+	PullingPattern := ""
+
+	SwitchDirection( PullingDirection )
+	
+	WaitForPullingBar()
+	
+	PullingProgress := GetPullingBarProgress( PullingDirection, ProgressLogStr, "init")
+	PullingPattern := PullingPattern 
+					. "`n" . A_NowUTC . " . " 
+					. (RodOverloadedState ? "#" : " ") 
+					. (PrevOverloadState ? "+ " : "  ") 
+					. (PullingDirection ? "---> " : "<--- ") 
+					.  PullingProgress
+					.  ProgressLogStr
 
 	While ( IsPullingBarOn() )
 	{
 		LastPullingProgress := PullingProgress
+
 		RodOverloadedState := isRodOverloaded()
-		If ( not RodOverloadedState )
-			PullingProgress := GetPullingBarProgress()
-		PullingPattern := PullingPattern . "`t" . PullingProgress 
-		WriteLineToLogfile( "{PullingTheFish}", "Dir = " . PullingDirection . " Ovr = " . RodOverloadedState . " POvr = " . PrevRodOverloadedState . " Prgr = " . PullingProgress )
-		If ( RodOverloadedState > PrevRodOverloadedState ) 
+		If ( RodOverloadedState )
+		{
+			PullingPattern := PullingPattern 
+							. "`n" . A_NowUTC . " # " 
+							. (RodOverloadedState ? "#" : " ") 
+							. (PrevOverloadState ? "+ " : "  ") 
+							. (PullingDirection ? "---> " : "<--- ") 
+							.  PullingProgress
+							
+			PrevOverloadState := 1
+			Continue
+		}
+		
+		PrevOverloadState := 0
+		
+		PullingProgress := GetPullingBarProgress( PullingDirection, ProgressLogStr )
+		PullingPattern := PullingPattern 
+						. "`n" . A_NowUTC . " : " 
+						. (RodOverloadedState ? "#" : " ") 
+						. (PrevOverloadState ? "+ " : "  ") 
+						. (PullingDirection ? "---> " : "<--- ") 
+						.  PullingProgress
+						.  ProgressLogStr
+
+
+		If ( (PullingDirection = 0) and ( PullingProgress < LeftPullingLimit ) )
 		{
 			SwitchDirection( PullingDirection )
+			Continue
 		}
-		Else
-			If ( not RodOverloadedState )
-			{
-				If ( (PullingDirection = 0) and ( PullingProgress < LeftPullingLimit ) )
-				{
-					SwitchDirection( PullingDirection )
-					PrevRodOverloadedState := 1
-					Continue
-				}
-				If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
-				{
-					SwitchDirection( PullingDirection )
-					PrevRodOverloadedState := 1
-					Continue
-				}
-			}
-		PrevRodOverloadedState := RodOverloadedState
+		If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
+		{
+			SwitchDirection( PullingDirection )
+			Continue
+		}
+
 	}
 	; WriteLineToLogfile( "{PullingTheFish}", "Pulling finished" )
 	Return PullingPattern
@@ -138,14 +157,26 @@ isRodOverloaded()
 	Return ( not TestPixelColor( 270, 460, 0x00CC00) )
 }
 
-GetPullingBarProgress()
+MakeLogStrOfGetPulBarProgr(Stage, i, PLFlag, LFlag, PRFlag, RFlag, Progr)
 {
+	Return "`n -" . Stage . "-" . i . "- " . PLFlag . "->" . LFlag . " " . PRFlag . "<-" . RFlag . " = " . Progr 
+}
+
+GetPullingBarProgress( PullingDirection, ByRef LogStr, isNewRun = 0 )
+{
+	static LastProgressValue
+	LogStr := ""
+	
+	If ( isNewRun )
+		LastProgressValue := 1
+	
 	ProgressFilledOn := 11
 	i := 10
 	Prev_L_Flag := TestPixelColor( 380 - i * 11, 460, 0x00CC00)
 	If ( not Prev_L_Flag )
 	{
-		ProgressFilledOn := 1
+		ProgressFilledOn := LastProgressValue
+		LogStr := LogStr . MakeLogStrOfGetPulBarProgr(1, 0, Prev_L_Flag, 0, 0, 0, ProgressFilledOn)
 	}
 	Else 
 	{
@@ -153,6 +184,7 @@ GetPullingBarProgress()
 		If ( Prev_R_Flag )
 		{
 			ProgressFilledOn := 21
+			LogStr := LogStr . MakeLogStrOfGetPulBarProgr(2, 0, Prev_L_Flag, 0, Prev_R_Flag, 0, ProgressFilledOn)
 		}
 		
 		i := 9
@@ -163,22 +195,25 @@ GetPullingBarProgress()
 			If ( L_Flag != Prev_L_Flag ) 
 			{
 				ProgressFilledOn := 11 - i
+				LogStr := LogStr . MakeLogStrOfGetPulBarProgr(3, i, Prev_L_Flag, L_Flag, Prev_R_Flag, 0, ProgressFilledOn)
 				Break
 			}
-			Else
+
+			R_Flag := TestPixelColor( 380 + i * 11, 460, 0x00CC00)
+			If ( R_Flag != Prev_R_Flag ) 
 			{
-				R_Flag := TestPixelColor( 380 + i * 11, 460, 0x00CC00)
-				If ( R_Flag != Prev_R_Flag ) 
-				{
-					ProgressFilledOn := 11 + i
-					Break
-				}
+				ProgressFilledOn := 11 + i
+				LogStr := LogStr . MakeLogStrOfGetPulBarProgr(4, i, Prev_L_Flag, L_Flag, Prev_R_Flag, R_Flag, ProgressFilledOn)
+				Break
 			}
+
+			LogStr := LogStr . MakeLogStrOfGetPulBarProgr(5, i, Prev_L_Flag, L_Flag, Prev_R_Flag, R_Flag, ProgressFilledOn)
 			i := i - 1
 			Prev_L_Flag := L_Flag
 			Prev_R_Flag := R_Flag
 		}
 	}
+	LastProgressValue := ProgressFilledOn
 	Return ProgressFilledOn
 }
 	
