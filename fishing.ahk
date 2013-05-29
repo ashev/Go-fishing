@@ -1,21 +1,17 @@
 	SetWorkingDir, %A_ScriptDir%
 
-	DebugFile = %A_ScriptDir%\Report_Run_%A_Now%.txt
-	DataFile = %A_ScriptDir%\Pulling_data.txt
+	DebugFile = %A_ScriptDir%\Report_Run_%A_Now%.log
+	DataFile = %A_ScriptDir%\Pulling_data.log
 	WndTitleKeyword := "Go Fishing"
 	BrowserTitleKeyword := "- Google Chrome"
-	UpperLeftCornerX := 0
-	UpperLeftCornerY := 0
 	
 	WriteLineToLogfile( A_LineNumber, "=========================" )
 	WriteLineToLogfile( A_LineNumber, "====== Starting up ======" )
 
 	;== SetupEnvironment()
-	UpdateFastPixelGetColor() 
-	
 	FindAndActivateGameWindow(BrowserTitleKeyword, WndTitleKeyword)
-	GetGameWindowDimensions(WindowWidth, WindowHeight)
-	SetupUpperLeftCorner(UpperLeftCornerX, UpperLeftCornerY)
+	GetGameWindowDimensions()
+	SetupUpperLeftCorner()
 	
 	SellAllFish()
 	FishesInFishcage := 0
@@ -219,11 +215,7 @@ IsPullingBarOn()
 TestPixelColor(PixelX, PixelY, TestColor)
 {
 	PixelGetColor, PixelColor, X(PixelX), Y(PixelY)
-
-	; !!!!!!!!!!!!!!!! Pixel fastening addons
-	; PixelColorFastGetted := FastPixelGetColor( X(PixelX), Y(PixelY), "Long" )
-	; WriteLineToLogfile( "{TestPixelColor}", "Pixel on " . PixelX . " is " . PixelColor . ". Fast getted is " . PixelColorFastGetted )
-
+	; WriteLineToLogfile( "{TestPixelColor}", "Pixel on " . PixelX . " is " . PixelColor )
 	If (PixelColor = TestColor)
 		Return 1
 	Else
@@ -361,9 +353,9 @@ IsMessageOn()
 
 ;================== Screen coordinates operations =============================
 
-SetupUpperLeftCorner(ByRef UpperLeftCornerX, ByRef UpperLeftCornerY)
+SetupUpperLeftCorner()
 {
-	global WindowWidth, WindowHeight
+	global WindowWidth, WindowHeight, UpperLeftCornerX, UpperLeftCornerY
 	
 	Imagesearch, ImgX, ImgY, 1, 1, WindowWidth, WindowHeight,*30 *Trans0xFF0000 %A_ScriptDir%\Images\LeftUpperCornedDefImg.png
 	UpperLeftCornerX := ImgX - 4
@@ -400,8 +392,10 @@ FindAndActivateGameWindow(KeywordInBrowserTitle, KeywordInGameTabTitle)
 	}
 }
 
-GetGameWindowDimensions(ByRef WindowWidth, ByRef WindowHeight)
+GetGameWindowDimensions()
 {
+	Global WindowWidth, WindowHeight
+	
 	WinGetPos, , , WindowWidth, WindowHeight, - Google Chrome
 
 	If (WindowWidth) {
@@ -430,84 +424,3 @@ WriteLineToDatafile(PullingResult, PullingPattern)
 }
 
 ;================== Imported functions =============================
-
-FastPixelGetColor(X, Y, Length)
-{
-	SetFormat, Integer, H
-
-	Global FastPixelGetColorBufferDC
-	Global FastPixelGetColorScreenLeft
-	Global FastPixelGetColorScreenTop
-
-	FastPixelGetColorOutput:=DllCall("GetPixel", "Uint", FastPixelGetColorBufferDC, "int", X - FastPixelGetColorScreenLeft, "int", Y - FastPixelGetColorScreenTop)
-
-	SetFormat, Integer, D
-
-	StringUpper, FastPixelGetColorOutput, FastPixelGetColorOutput
-
-	StringLen, StringLength , FastPixelGetColorOutput
-	IfNotEqual,StringLength ,8
-	{
-		FastPixelGetColorOutput:= RegExReplace(FastPixelGetColorOutput, "0X", "0X0")
-	}
-
-	FastPixelGetColorOutput:=RegExReplace(FastPixelGetColorOutput, "X", "x")
-
-	IfEqual,Length,Short
-	{
-		FastPixelGetColorOutput:=Substr(FastPixelGetColorOutput, 1, 4)
-	}
-
-	IfEqual,Length,Long
-	{
-		IfEqual,FastPixelGetColorOutput,0x00
-		{
-			FastPixelGetColorOutput=0x000000
-		}
-	}
-   
-   	Return %FastPixelGetColorOutput%
-}
-
-UpdateFastPixelGetColor() 
-{
-	Global FastPixelGetColorBufferDC
-	Global FastPixelGetColorScreenLeft
-	Global FastPixelGetColorScreenTop
-
-	Static Buffer=0
-	Static Object=0
-
-	SysGet, FastPixelGetColorScreenLeft, 76
-	SysGet, FastPixelGetColorScreenTop, 77
-	SysGet, ScreenWidth, 78
-	SysGet, ScreenHeight, 79
-
-; Thrash
-	DllCall("SelectObject", "Uint", FastPixelGetColorBufferDC, "Uint", Object) 
-	DllCall("DeleteDC", "Uint", FastPixelGetColorBufferDC) 
-	DllCall("DeleteObject", "Uint", Buffer) 
-
-; Create
-	FastPixelGetColorBufferDC:=DllCall("CreateCompatibleDC", "Uint", 0) 
-	Buffer:=CreateDIB(FastPixelGetColorBufferDC, ScreenWidth, ScreenHeight) 
-	Object:=DllCall("SelectObject", "Uint", fastPixelGetColorBufferDC, "Uint", Buffer)
-	ScreenDC:=DllCall("GetDC", "Uint", 0) 
-
-; Release
-	DllCall("BitBlt", "Uint", FastPixelGetColorBufferDC, "int", 0, "int", 0, "int", ScreenWidth, "int", ScreenHeight, "Uint", ScreenDC, "int", FastPixelGetColorScreenLeft, "int", FastPixelGetColorScreenTop, "Uint", 0x40000000 | 0x00CC0020) 
-	DllCall("ReleaseDC", "Uint", 0, "Uint", ScreenDC)
-
-}
-
-CreateDIB(hDC, nW, nH, bpp = 32, ByRef pBits = "") 
-{ 
-	NumPut(VarSetCapacity(bi, 40, 0), bi) 
-	NumPut(nW, bi, 4) 
-	NumPut(nH, bi, 8) 
-	NumPut(BPP, NumPut(1, bi, 12, "UShort"), 0, "Ushort") 
-	NumPut(0,  bi,16) 
-	Return DllCall("gdi32\CreateDIBSection", "Uint", hDC, "Uint", &bi, "Uint", 0, "UintP", pBits, "Uint", 0, "Uint", 0) 
-}
-
-
