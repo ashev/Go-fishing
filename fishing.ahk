@@ -106,15 +106,12 @@ PullingTheFish()
 				RightPullingLimit := RightPullingLimit - 1
 			}
 		}
-		Else
-		{
 
-			If ( (PullingDirection = 0) and ( PullingProgress < LeftPullingLimit ) )
+		If ( (PullingDirection = 0) and ( PullingProgress < LeftPullingLimit ) )
+			SwitchDirection( PullingDirection )
+		Else
+			If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
 				SwitchDirection( PullingDirection )
-			Else
-				If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
-					SwitchDirection( PullingDirection )
-		}
 
 		ProgressLogStr := "`t" . LeftPullingLimit . " <-> " . RightPullingLimit
 		PullingPattern := PullingPattern 
@@ -164,12 +161,17 @@ GetPullingBarProgress( PullingDirection, OverloadingFlag, isNewRun = 0 )
 	static LeftBarLimit  := 265
 	static RightBarLimit := 485
 	static PrevProgressValue
+	static PrevDirection
 	
-	If (isNewRun)
+	If (isNewRun) 
+	{
 		PrevProgressValue := 0
+		PrevDirection := 1
+	}
 
 	If ( OverloadingFlag ) {
-		ProgressValue := PrevProgressValue + ( PullingDirection ? 1 : -1 ) * 0
+		CorrectionValue := ( PullingDirection = PrevDirection ? 2 : 0 )
+		ProgressValue := PrevProgressValue + ( PullingDirection ? 1 : -1 ) * CorrectionValue
 	}
 	else
 	{	
