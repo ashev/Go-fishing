@@ -75,18 +75,19 @@ WaitForPullingBar()
 PullingTheFish()
 {
 	RightPullingLimit := 16
-	LeftPullingLimit  := 7
+	LeftPullingLimit  := 4
 	PrevOverloadState := 0
 	PullingPattern := ""
+	
+	ProgressLogStr := "`t" . LeftPullingLimit . " <-> " . RightPullingLimit
 
 	SwitchDirection( PullingDirection )
-	
 	WaitForPullingBar()
 	
-	PullingProgress := GetPullingBarProgress( PullingDirection, ProgressLogStr, "init")
+	PullingProgress := GetPullingBarProgress( PullingDirection, 0, "init")
 	PullingPattern := PullingPattern 
 					. "`n" . A_NowUTC . " . " 
-					. (RodOverloadedState ? "#" : " ") 
+					. (0 ? "#" : " ") 
 					. (PrevOverloadState ? "+ " : "  ") 
 					. (PullingDirection ? "---> " : "<--- ") 
 					.  PullingProgress
@@ -94,25 +95,28 @@ PullingTheFish()
 
 	While ( IsPullingBarOn() )
 	{
-		LastPullingProgress := PullingProgress
-
 		RodOverloadedState := isRodOverloaded()
+		PullingProgress := GetPullingBarProgress( PullingDirection, RodOverloadedState )
+
 		If ( RodOverloadedState )
 		{
-			PullingPattern := PullingPattern 
-							. "`n" . A_NowUTC . " # " 
-							. (RodOverloadedState ? "#" : " ") 
-							. (PrevOverloadState ? "+ " : "  ") 
-							. (PullingDirection ? "---> " : "<--- ") 
-							.  PullingProgress
-							
-			PrevOverloadState := 1
-			Continue
+			If (!PrevOverloadState)
+			{
+				LeftPullingLimit := LeftPullingLimit + 1
+				RightPullingLimit := RightPullingLimit - 1
+			}
 		}
-		
-		PrevOverloadState := 0
-		
-		PullingProgress := GetPullingBarProgress( PullingDirection, ProgressLogStr )
+		Else
+		{
+
+			If ( (PullingDirection = 0) and ( PullingProgress < LeftPullingLimit ) )
+				SwitchDirection( PullingDirection )
+			Else
+				If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
+					SwitchDirection( PullingDirection )
+		}
+
+		ProgressLogStr := "`t" . LeftPullingLimit . " <-> " . RightPullingLimit
 		PullingPattern := PullingPattern 
 						. "`n" . A_NowUTC . " : " 
 						. (RodOverloadedState ? "#" : " ") 
@@ -121,18 +125,7 @@ PullingTheFish()
 						.  PullingProgress
 						.  ProgressLogStr
 
-
-		If ( (PullingDirection = 0) and ( PullingProgress < LeftPullingLimit ) )
-		{
-			SwitchDirection( PullingDirection )
-			Continue
-		}
-		If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
-		{
-			SwitchDirection( PullingDirection )
-			Continue
-		}
-
+		PrevOverloadState := RodOverloadedState
 	}
 	; WriteLineToLogfile( "{PullingTheFish}", "Pulling finished" )
 	Return PullingPattern
@@ -154,7 +147,11 @@ SwitchDirection( ByRef PullingDirection )
 
 isRodOverloaded()
 {
-	Return ( not TestPixelColor( 270, 460, 0x00CC00) )
+	LeftColorFlag := TestPixelColor( 267, 460, 0x00CC00)
+	RightColorFlag := TestPixelColor( 483, 460, 0x00CC00)
+	OverloadingFlag :=  not ( LeftColorFlag ^ RightColorFlag )
+	
+	Return OverloadingFlag
 }
 
 MakeLogStrOfGetPulBarProgr(Stage, i, PLFlag, LFlag, PRFlag, RFlag, Progr)
@@ -162,14 +159,48 @@ MakeLogStrOfGetPulBarProgr(Stage, i, PLFlag, LFlag, PRFlag, RFlag, Progr)
 	Return "`n -" . Stage . "-" . i . "- " . PLFlag . "->" . LFlag . " " . PRFlag . "<-" . RFlag . " = " . Progr 
 }
 
-GetPullingBarProgress( PullingDirection, ByRef LogStr, isNewRun = 0 )
+GetPullingBarProgress( PullingDirection, OverloadingFlag, isNewRun = 0 )
 {
-	; Left limit = 270, Middle limit = 380, Right limit = 490
-	LogStr := ""
+	static LeftBarLimit  := 265
+	static RightBarLimit := 485
+	static PrevProgressValue
+	
+	If (isNewRun)
+		PrevProgressValue := 0
 
-	Prev_L_Flag := TestPixelColor( 380 - i * 11, 460, 0x00CC00)
+	If ( OverloadingFlag ) {
+		ProgressValue := PrevProgressValue + ( PullingDirection ? 1 : -1 ) * 0
+	}
+	else
+	{	
+		If ( PullingDirection = 1 ) 
+		{
+			OperationSign := -1
+			StartingPosition := RightBarLimit
+			StartingProgress := 20
+			ComparitionAnswer := 0
+		}
+		Else
+		{
+			OperationSign := 1
+			StartingPosition := LeftBarLimit
+			StartingProgress := 0
+			ComparitionAnswer := 1
+		}
 
-	Return ( PullingDirection ? 20 : 1 )
+		Loop, 20
+		{
+			ProgressDelta := OperationSign * A_Index
+			ColorFlagOnPos := TestPixelColor( StartingPosition + ProgressDelta * 12, 460, 0x00CC00)
+			If ( ColorFlagOnPos != ComparitionAnswer )
+				Break
+		}
+
+		ProgressValue := StartingProgress + ProgressDelta
+	}
+	PrevProgressValue := ProgressValue
+	
+	Return ProgressValue
 }
 
 IsPullingBarOn()
