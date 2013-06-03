@@ -14,6 +14,8 @@
 	GetGameWindowDimensions()
 	SetupUpperLeftCorner()
 	
+	TestEntryFunc()
+
 	SellAllFish()
 	FishesInFishcage := 0
 	FishcageCapacity := 50
@@ -43,6 +45,8 @@ StartFishing:
 
 	WriteLineToDatafile( PullingResult, Pattern )
 	
+	CheckingEnergyStatusAndFeeding()
+	
 	If ( FishesInFishcage >= FishcageCapacity )
 	{
 		SellAllFish()
@@ -63,12 +67,95 @@ ExitApp
 
 ; ======================== Body end ====================================================
 
+TestEntryFunc()
+{
+
+}
+
+; ======================== Energy management ====================================================
+
+CheckingEnergyStatusAndFeeding()
+{
+	Energy := GetEnergyPercents()
+
+	If ( Energy < 20 ) {
+		OpenFeedingMenu()
+		FeedMe(1)
+		NewEnergy := GetEnergyPercents()
+		EnergyStep := NewEnergy - Energy
+		TimesToFeed := floor( ( 100 - NewEnergy ) / EnergyStep )
+		FeedMe( TimesToFeed )
+		CloseFeedingMenu()
+	}
+}
+
+OpenFeedingMenu()
+{
+	MouseMove, X(50), Y(420)
+	Sleep, 500
+	MouseClick, Left, X(50), Y(420)
+
+	Sleep, 500
+
+	MouseMove, X(250), Y(150)
+	Sleep, 500
+	MouseClick, Left, X(250), Y(150)
+
+	Sleep, 500
+
+}
+
+CloseFeedingMenu()
+{
+	MouseClick, Left, X(700), Y(80)
+	Sleep, 500
+}
+
+FeedMe( nTimes )
+{
+	MouseMove, X(100), Y(370)
+	Sleep, 500
+	While ( nTimes > 0 )
+	{
+		MouseClick, Left, X(100), Y(370)
+		Sleep, 2000
+		nTimes--
+	}
+}
+
+GetEnergyPercents()
+{
+	; Energy bar position is 439x32 - 606x32
+	; length is 166
+	BarLeftX := 439
+	RangeLeftX := BarLeftX
+	RangeRightX := 606
+	BarY     := 32
+
+	Loop
+	{
+		dX := RangeRightX - RangeLeftX
+		If ( dX <= 2 )
+			Break
+			
+		MidX := RangeLeftX + dX // 2
+		If ( TestPixelColor( MidX, 32, 0xFD4406) ) 
+			RangeLeftX := MidX
+		Else
+			RangeRightX := MidX
+	}
+
+	Return (MidX - BarLeftX)*100/165
+}
+
+; ======================== Pulling sequence ====================================================
+
 WaitForPullingBar()
 {
 	i := 0
 	while ( ( not IsPullingBarOn() ) and ( i < 1000 ) )
 	{
-		i := i + 1
+		i++
 	}
 }
 	
@@ -79,26 +166,18 @@ PullingTheFish()
 	PrevOverloadState := 0
 	PullingPattern := ""
 	
-	ProgressLogStr := "`t" . LeftPullingLimit . " <-> " . RightPullingLimit
-
 	SwitchDirection( PullingDirection )
 	WaitForPullingBar()
 	
 	PullingProgress := GetPullingBarProgress( PullingDirection, 0, "init")
-	PullingPattern := PullingPattern 
-					. "`n" . A_NowUTC . " . " 
-					. (0 ? "#" : " ") 
-					. (PrevOverloadState ? "+ " : "  ") 
-					. (PullingDirection ? "---> " : "<--- ") 
-					.  PullingProgress
-					.  ProgressLogStr
+	PullingPattern := PullingPattern . PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit)
 
 	While ( IsPullingBarOn() )
 	{
-		RodOverloadedState := isRodOverloaded()
-		PullingProgress := GetPullingBarProgress( PullingDirection, RodOverloadedState )
+		RodOverloadState := isRodOverloaded()
+		PullingProgress := GetPullingBarProgress( PullingDirection, RodOverloadState)
 
-		If ( RodOverloadedState )
+		If ( RodOverloadState )
 		{
 			If (!PrevOverloadState)
 			{
@@ -113,19 +192,21 @@ PullingTheFish()
 			If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
 				SwitchDirection( PullingDirection )
 
-		ProgressLogStr := "`t" . LeftPullingLimit . " <-> " . RightPullingLimit
-		PullingPattern := PullingPattern 
-						. "`n" . A_NowUTC . " : " 
-						. (RodOverloadedState ? "#" : " ") 
-						. (PrevOverloadState ? "+ " : "  ") 
-						. (PullingDirection ? "---> " : "<--- ") 
-						.  PullingProgress
-						.  ProgressLogStr
-
-		PrevOverloadState := RodOverloadedState
+		PullingPattern := PullingPattern . PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit) 
+		PrevOverloadState := RodOverloadState
 	}
 	; WriteLineToLogfile( "{PullingTheFish}", "Pulling finished" )
 	Return PullingPattern
+}
+
+PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit)
+{
+		Return ( "`n" . A_NowUTC . " : " 
+				. (RodOverloadState ? "#" : " ") 
+				. (PrevOverloadState ? "+ " : "  ") 
+				. (PullingDirection ? "---> " : "<--- ") 
+				.  PullingProgress
+				.  "`t" . LeftPullingLimit . " <-> " . RightPullingLimit )
 }
 
 SwitchDirection( ByRef PullingDirection )
@@ -151,15 +232,11 @@ isRodOverloaded()
 	Return OverloadingFlag
 }
 
-MakeLogStrOfGetPulBarProgr(Stage, i, PLFlag, LFlag, PRFlag, RFlag, Progr)
-{
-	Return "`n -" . Stage . "-" . i . "- " . PLFlag . "->" . LFlag . " " . PRFlag . "<-" . RFlag . " = " . Progr 
-}
-
 GetPullingBarProgress( PullingDirection, OverloadingFlag, isNewRun = 0 )
 {
-	static LeftBarLimit  := 265
-	static RightBarLimit := 485
+	static LeftBarX  := 265
+	static RightBarX := 485
+	static BarY      := 460
 	static PrevProgressValue
 	static PrevDirection
 	
@@ -178,27 +255,27 @@ GetPullingBarProgress( PullingDirection, OverloadingFlag, isNewRun = 0 )
 		If ( PullingDirection = 1 ) 
 		{
 			OperationSign := -1
-			StartingPosition := RightBarLimit
+			StartingPosition := RightBarX
 			StartingProgress := 20
 			ComparitionAnswer := 0
 		}
 		Else
 		{
 			OperationSign := 1
-			StartingPosition := LeftBarLimit
+			StartingPosition := LeftBarX
 			StartingProgress := 0
 			ComparitionAnswer := 1
 		}
 
 		Loop, 20
 		{
-			ProgressDelta := OperationSign * A_Index
-			ColorFlagOnPos := TestPixelColor( StartingPosition + ProgressDelta * 12, 460, 0x00CC00)
+			ProgressIndex := OperationSign * A_Index
+			ColorFlagOnPos := TestPixelColor( StartingPosition + ProgressIndex * 12, BarY, 0x00CC00)
 			If ( ColorFlagOnPos != ComparitionAnswer )
 				Break
 		}
 
-		ProgressValue := StartingProgress + ProgressDelta
+		ProgressValue := StartingProgress + ProgressIndex
 	}
 	PrevProgressValue := ProgressValue
 	
@@ -211,12 +288,10 @@ IsPullingBarOn()
 	If (    TestPixelColor( 199, 455, 0x0 ) 
 		and TestPixelColor( 551, 455, 0x0 ) )
 	{
-		; WriteLineToLogfile( "{IsPullingBarOn}", "Pulling bar is ON" )
 		Return 1
 	}
 	else
 	{
-		; WriteLineToLogfile( "{IsPullingBarOn}", "Pulling bar is OFF" )
 		Return 0
 	}
 }
@@ -294,8 +369,6 @@ isImgTagInRect( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2
 	Else
 		TagInRectState := 0
 		
-	; WriteLineToLogfile( "{isImgTagInRect}", ImgTagStr . " searching result => " . TagInRectState  )
-
 	Return TagInRectState
 }
 
@@ -334,6 +407,7 @@ IsCollectionCatched()
 		WriteLineToLogfile( "{IsCollectionCatched}", "Collection item catched." )
 		CatchedResult := 1
 		MouseClick, Left, X(400), Y(430)
+		Sleep, 500
 	}
 	Else
 	{
@@ -342,6 +416,7 @@ IsCollectionCatched()
 			WriteLineToLogfile( "{IsCollectionCatched}", "Collection item catched. One more Collection complited." )
 			CatchedResult := 2
 			MouseClick, Left, X(250), Y(450)
+			Sleep, 500
 		}
 	}
 	Return CatchedResult
@@ -356,6 +431,7 @@ IsMessageOn()
 		WriteLineToLogfile( "{IsMessageOn}", "Message detected. Ok button on " . OkBtnX . ", " . OkBtnY )
 		MsgResult := 1
 		MouseClick, Left, OkBtnX+20, OkBtnY+20
+		Sleep, 500
 	}
 	Return MsgResult
 }
