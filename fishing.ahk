@@ -49,6 +49,7 @@ StartFishing:
 	
 	If ( FishesInFishcage >= FishcageCapacity )
 	{
+		MsgBox, 50 fishes catched.
 		SellAllFish()
 		FishesInFishcage := 0
 	}
@@ -164,6 +165,7 @@ PullingTheFish()
 	RightPullingLimit := 16
 	LeftPullingLimit  := 4
 	PrevOverloadState := 0
+	CalmCycles := 0
 	PullingPattern := ""
 	
 	SwitchDirection( PullingDirection )
@@ -179,10 +181,11 @@ PullingTheFish()
 
 		If ( RodOverloadState )
 		{
+			CalmCycles := 0
 			If (!PrevOverloadState)
 			{
-				LeftPullingLimit := LeftPullingLimit + 1
-				RightPullingLimit := RightPullingLimit - 1
+				LeftPullingLimit++
+				RightPullingLimit--
 			}
 		}
 
@@ -190,7 +193,15 @@ PullingTheFish()
 			SwitchDirection( PullingDirection )
 		Else
 			If ( (PullingDirection = 1) and ( PullingProgress > RightPullingLimit ) )
+			{
 				SwitchDirection( PullingDirection )
+				CalmCycles++
+				If ( CalmCycles > 3 ) {
+					CalmCycles := 0
+					LeftPullingLimit--
+					RightPullingLimit++
+				}
+			}
 
 		PullingPattern := PullingPattern . PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit) 
 		PrevOverloadState := RodOverloadState
