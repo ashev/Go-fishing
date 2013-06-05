@@ -49,7 +49,7 @@ StartFishing:
 	
 	If ( FishesInFishcage >= FishcageCapacity )
 	{
-		MsgBox, 50 fishes catched.
+		; MsgBox, 50 fishes catched.
 		SellAllFish()
 		FishesInFishcage := 0
 	}
@@ -78,6 +78,11 @@ TestEntryFunc()
 CheckingEnergyStatusAndFeeding()
 {
 	Energy := GetEnergyPercents()
+	If ( Energy < 20 ) 
+	{
+		Sleep, 1000
+		Energy := GetEnergyPercents()
+	}
 
 	If ( Energy < 20 ) {
 		OpenFeedingMenu()
