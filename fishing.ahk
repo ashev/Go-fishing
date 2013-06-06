@@ -32,16 +32,20 @@ StartFishing:
 
 	PullingResult := -1
 	While (PullingResult = -1)
+	{
 		If (IsFishCatched()) {
 			PullingResult := "`nCatched"
 			FishesInFishcage := FishesInFishcage + 1
 		}
-		Else
-			If (IsCollectionCatched())
-				PullingResult := "`nCollection"
-			Else
-				If (IsMessageOn())
-					PullingResult := "`nLost"
+		Else If (IsCollectionCatched())
+			PullingResult := "`nCollection"
+		Else If (IsMessageOn())
+			PullingResult := "`nLost"
+		Else If (IsLvlUp())
+			PullingResult := "`nLvlUp"
+		Else If (IsTreasureCatched())
+			PullingResult := "`nTreasure"
+	}
 
 	WriteLineToDatafile( PullingResult, Pattern )
 	
@@ -70,7 +74,6 @@ ExitApp
 
 TestEntryFunc()
 {
-
 }
 
 ; ======================== Energy management ====================================================
@@ -388,6 +391,21 @@ isImgTagInRect( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2
 	Return TagInRectState
 }
 
+LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, dx=5, dy=5 )
+{
+	Imagesearch, ImgTagX, ImgTagY, X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *30 *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
+
+	If ( ImgTagX > 0 )
+	{
+		TagInRectState := 1
+		MouseClick, Left, ImgTagX+dX, ImgTagY+dY
+	}
+	Else
+		TagInRectState := 0
+		
+	Return TagInRectState
+}
+
 IsFishCatched() 
 {
 	CatchedResult := 0
@@ -407,10 +425,25 @@ IsFishCatched()
 
 UncheckFishInfoSharingBox()
 {
-	If ( isImgTagInRect( "ShareFishCheckBox", 180, 430, 230, 470 ) )
+	If ( LocateImgAndClick( "ShareFishCheckBox", 180, 430, 230, 470 ) )
 	{
 		WriteLineToLogfile( "{IsFishCatched}", "Sharing CheckBox unchecked." )
-		MouseClick, Left, X(200), Y(450)
+	}
+}
+
+UncheckLvlUpSharingBox()
+{
+	If ( LocateImgAndClick( "ShareLvlUpCheckBox", 70, 460, 110, 500 ) )
+	{
+		WriteLineToLogfile( "{IsLvlUp}", "Sharing CheckBox unchecked." )
+	}
+}
+
+UncheckTreasureSharingBox()
+{
+	If ( LocateImgAndClick( "ShareTreasureCheckBox", 170, 460, 230, 500 ) )
+	{
+		WriteLineToLogfile( "{IsLvlUp}", "Sharing CheckBox unchecked." )
 	}
 }
 
@@ -429,7 +462,7 @@ IsCollectionCatched()
 	{
 		If ( isImgTagInRect( "CatchTagCollectionFull", 150, 130, 350, 230 ) )
 		{
-			WriteLineToLogfile( "{IsCollectionCatched}", "Collection item catched. One more Collection complited." )
+			WriteLineToLogfile( "{IsCollectionCatched}", "Collection item catched. One more Collection completed." )
 			CatchedResult := 2
 			MouseClick, Left, X(250), Y(450)
 			Sleep, 500
@@ -450,6 +483,32 @@ IsMessageOn()
 		Sleep, 500
 	}
 	Return MsgResult
+}
+
+isLvlUp()
+{
+	LvlUpResult := 0
+	If ( isImgTagInRect( "lvlUpTag", 140, 100, 200, 130 ) )
+	{
+		UncheckLvlUpSharingBox()
+		MouseClick, Left, X(430), Y(480)
+		LvlUpResult := 1
+		WriteLineToLogfile( "{isLvlUp}", "== Level up! ==" )
+	}
+	Return LvlUpResult
+}
+
+IsTreasureCatched()
+{
+	TreasureResult := 0
+	If ( isImgTagInRect( "CatchTagTreasure", 280, 80, 380, 130 ) )
+	{
+		UncheckTreasureSharingBox()
+		MouseClick, Left, X(370), Y(490)
+		TreasureResult := 1
+		WriteLineToLogfile( "{TreasureResult}", "== Treasure catched! ==" )
+	}
+	Return TreasureResult
 }
 
 ;================== Screen coordinates operations =============================
