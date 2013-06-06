@@ -30,24 +30,25 @@ StartFishing:
 	
 	Pattern := PullingTheFish()
 
+	WriteLineToDatafile( "Pattern", Pattern )
 	PullingResult := -1
 	While (PullingResult = -1)
 	{
 		If (IsFishCatched()) {
-			PullingResult := "`nCatched"
+			PullingResult := "= Catched"
 			FishesInFishcage := FishesInFishcage + 1
 		}
 		Else If (IsCollectionCatched())
-			PullingResult := "`nCollection"
+			PullingResult := "Collection"
 		Else If (IsMessageOn())
-			PullingResult := "`nLost"
+			PullingResult := "Lost"
 		Else If (IsLvlUp())
-			PullingResult := "`nLvlUp"
+			PullingResult := "LvlUp"
 		Else If (IsTreasureCatched())
-			PullingResult := "`nTreasure"
+			PullingResult := "Treasure"
 	}
 
-	WriteLineToDatafile( PullingResult, Pattern )
+	WriteLineToDatafile( PullingResult, "`n`n" )
 	
 	CheckingEnergyStatusAndFeeding()
 	
@@ -296,6 +297,7 @@ GetPullingBarProgress( PullingDirection, OverloadingFlag, isNewRun = 0 )
 
 		ProgressValue := StartingProgress + ProgressIndex
 	}
+	PrevDirection := PullingDirection
 	PrevProgressValue := ProgressValue
 	
 	Return ProgressValue
