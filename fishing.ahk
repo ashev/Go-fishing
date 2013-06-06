@@ -42,14 +42,12 @@ StartFishing:
 			PullingResult := "Collection"
 		Else If (IsMessageOn())
 			PullingResult := "Lost"
-		Else If (IsLvlUp())
-			PullingResult := "LvlUp"
 		Else If (IsTreasureCatched())
 			PullingResult := "Treasure"
 	}
 
 	WriteLineToDatafile( PullingResult, "`n`n" )
-	
+
 	CheckingEnergyStatusAndFeeding()
 	
 	If ( FishesInFishcage >= FishcageCapacity )
@@ -329,7 +327,11 @@ TestPixelColor(PixelX, PixelY, TestColor)
 
 CastALine()
 {
-	Imagesearch, CastBtnX, CastBtnY, X(480), Y(480), X(600), Y(530), *30 *Trans0xFF0000 %A_ScriptDir%\Images\CastBtnTag.png
+	While ( !CastBtnX )
+	{
+		IsLvlUp()
+		Imagesearch, CastBtnX, CastBtnY, X(480), Y(480), X(600), Y(530), *30 *Trans0xFF0000 %A_ScriptDir%\Images\CastBtnTag.png
+	}
 	WriteLineToLogfile( "{CastALine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
 
 	Sleep, 500
@@ -341,7 +343,6 @@ WaitForStrike()
 {
 	While ( not isImgTagInRect( "StrikeBtnTag", 480, 480, 600, 530 ) ) 
 		Sleep, 50
-
 	WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
 }
 
@@ -445,7 +446,7 @@ UncheckTreasureSharingBox()
 {
 	If ( LocateImgAndClick( "ShareTreasureCheckBox", 170, 460, 230, 500 ) )
 	{
-		WriteLineToLogfile( "{IsLvlUp}", "Sharing CheckBox unchecked." )
+		WriteLineToLogfile( "{Treasure}", "Sharing CheckBox unchecked." )
 	}
 }
 
@@ -496,6 +497,7 @@ isLvlUp()
 		MouseClick, Left, X(430), Y(480)
 		LvlUpResult := 1
 		WriteLineToLogfile( "{isLvlUp}", "== Level up! ==" )
+		Sleep, 500
 	}
 	Return LvlUpResult
 }
