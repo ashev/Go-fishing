@@ -77,14 +77,23 @@ TestEntryFunc()
 
 ; ======================== Energy management ====================================================
 
+WaitForFishingScreen()
+{
+	while ( not IsImgInRect( "LeftUpperCornedDefImg", 4, 7, 34, 37 )
+		sleep, 100
+}
+
 CheckingEnergyStatusAndFeeding()
 {
+	WaitForFishingScreen()
+
 	Energy := GetEnergyPercents()
-	If ( Energy < 20 ) 
-	{
-		Sleep, 1000
-		Energy := GetEnergyPercents()
-	}
+
+	; If ( Energy < 20 ) 
+	; {
+		; Sleep, 1000
+		; Energy := GetEnergyPercents()
+	; }
 
 	If ( Energy < 20 ) {
 		OpenFeedingMenu()
@@ -121,11 +130,12 @@ CloseFeedingMenu()
 
 FeedMe( nTimes )
 {
-	MouseMove, X(100 + 130), Y(370) ; --- !!!! ------
+	MouseMove, X(100), Y(370)
 	Sleep, 500
 	While ( nTimes > 0 )
 	{
-		MouseClick, Left, X(100 + 130), Y(370) ; --- !!!! ------
+		LocateImgAndClick( "SteakTag", 40, 310, 500, 355, 60, 55 )
+		; MouseClick, Left, X(100 + 130), Y(370) ; --- !!!! ------
 		Sleep, 2000
 		nTimes--
 	}
@@ -330,7 +340,8 @@ CastALine()
 	While ( !CastBtnX )
 	{
 		IsLvlUp()
-		Imagesearch, CastBtnX, CastBtnY, X(480), Y(480), X(600), Y(530), *30 *Trans0xFF0000 %A_ScriptDir%\Images\CastBtnTag.png
+		FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
+		; Imagesearch, CastBtnX, CastBtnY, X(480), Y(480), X(600), Y(530), *30 *Trans0xFF0000 %A_ScriptDir%\Images\CastBtnTag.png
 	}
 	WriteLineToLogfile( "{CastALine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
 
@@ -389,13 +400,9 @@ isImgTagInRect( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2
 
 LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, dx=5, dy=5 )
 {
-	If ( FindImgPosInRect( ImgTagStr, ImgTagX, ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y ) )
-	{
-		TagInRectState := 1
+	TagInRectState := FindImgPosInRect( ImgTagStr, ImgTagX, ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
+	If ( TagInRectState )
 		MouseClick, Left, ImgTagX+dX, ImgTagY+dY
-	}
-	Else
-		TagInRectState := 0
 		
 	Return TagInRectState
 }
@@ -479,12 +486,10 @@ IsCollectionCatched()
 
 IsMessageOn() 
 {
-	MsgResult := 0
-	Imagesearch, OkBtnX, OkBtnY, X(250), Y(250), X(450), Y(450), *30 *Trans0xFF0000 %A_ScriptDir%\Images\InfoOkBtn.png
-	If (OkBtnX>0)
+	MsgResult := FindImgPosInRect( "InfoOkBtn", OkBtnX, OkBtnY, 250, 250, 450, 450 )
+	If ( MsgResult )
 	{
 		WriteLineToLogfile( "{IsMessageOn}", "Message detected. Ok button on " . OkBtnX . ", " . OkBtnY )
-		MsgResult := 1
 		MouseClick, Left, OkBtnX+20, OkBtnY+20
 		Sleep, 500
 	}
