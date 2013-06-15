@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gui>
+	<control></control>
+	<groupbox></groupbox>
+	<show h="500" number="" options="" show="" title="" w="500" x="681" y="201"></show>
+	<tab><tab control="Tab" h="473" hwnd="591892" options="" tn="1" type="Tab" value="Pulling settings|Tab" w="566" x="10" y="12">
+			<tabnum tab="1">
+				<control control="Slider" h="32" hwnd="591868" options="0x1" tabnum="1" type="Slider" v="DelayMultiplier" value="Slider" w="438" x="36" y="112"></control>
+				<control control="Slider" h="32" hwnd="1482754170" options="ToolTip" tabnum="1" type="Slider" value="Slider" w="438" x="33" y="169"></control>
+				<control control="Text" h="20" hwnd="2521827382" options="" tabnum="1" type="Text" value="Left limit" w="79" x="40" y="90"></control>
+				<control control="Text" h="16" hwnd="1313284" options="" tabnum="1" type="Text" value="Right limit" w="56" x="412" y="148"></control>
+				<control control="DropDownList" hwnd="1316156" options="" tabnum="1" type="DropDownList" value="1|2|3|5" w="120" x="135" y="212" h=""></control>
+				<control control="Text" h="17" hwnd="40896632" options="" tabnum="1" type="Text" value="Aggresivity" w="55" x="42" y="215"></control>
+				<control control="DropDownList" hwnd="1054016" options="" tabnum="1" type="DropDownList" value="50|75|100|150" w="120" x="134" y="247" h=""></control>
+				<control control="Text" h="22" hwnd="223414270" options="" tabnum="1" type="Text" value="Fishcage volume" w="88" x="42" y="250"></control>
+				<control control="Text" h="16" hwnd="794039290" options="" tabnum="1" type="Text" value="On full" w="134" x="61" y="286"></control>
+				<control control="Text" h="13" hwnd="578816624" options="" tabnum="1" type="Text" value="Cook fish steaks if low energy" w="149" x="61" y="304"></control>
+				<control control="Text" h="15" hwnd="4327520" options="" tabnum="1" type="Text" value="Pause on level up" w="131" x="60" y="320"></control>
+				<control control="Text" h="16" hwnd="41224240" options="" tabnum="1" type="Text" value="Pause on treasure" w="119" x="60" y="338"></control>
+				<control control="Text" h="14" hwnd="3020190" options="" tabnum="1" type="Text" value="Pause on quest accomplished" w="153" x="59" y="372"></control>
+				<control control="Text" h="16" hwnd="31852522" options="" tabnum="1" type="Text" value="Pause on collection" w="119" x="59" y="354"></control></tabnum></tab>
+	</tab>
+</gui>

@@ -121,11 +121,11 @@ CloseFeedingMenu()
 
 FeedMe( nTimes )
 {
-	MouseMove, X(100), Y(370)
+	MouseMove, X(100 + 130), Y(370) ; --- !!!! ------
 	Sleep, 500
 	While ( nTimes > 0 )
 	{
-		MouseClick, Left, X(100), Y(370)
+		MouseClick, Left, X(100 + 130), Y(370) ; --- !!!! ------
 		Sleep, 2000
 		nTimes--
 	}
@@ -384,21 +384,12 @@ isFishInCage()
 
 isImgTagInRect( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
 {
-	Imagesearch, ImgTagX, , X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *30 *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
-
-	If ( ImgTagX > 1 )
-		TagInRectState := 1
-	Else
-		TagInRectState := 0
-		
-	Return TagInRectState
+	Return FindImgPosInRect( ImgTagStr, ImgTagX, ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
 }
 
 LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, dx=5, dy=5 )
 {
-	Imagesearch, ImgTagX, ImgTagY, X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *30 *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
-
-	If ( ImgTagX > 0 )
+	If ( FindImgPosInRect( ImgTagStr, ImgTagX, ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y ) )
 	{
 		TagInRectState := 1
 		MouseClick, Left, ImgTagX+dX, ImgTagY+dY
@@ -407,6 +398,18 @@ LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorn
 		TagInRectState := 0
 		
 	Return TagInRectState
+}
+
+FindImgPosInRect( ImgTagStr, ByRef ImgTagX, ByRef ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
+{
+	Imagesearch, ImgTagX, ImgTagY, X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *30 *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
+
+	If ( ImgTagX > 0 )
+		TagFound := 1
+	Else
+		TagFound := 0
+		
+	Return TagFound
 }
 
 IsFishCatched() 
