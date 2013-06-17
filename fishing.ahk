@@ -13,21 +13,24 @@
 	WriteLineToLogfile( A_LineNumber, "====== Starting up ======" )
 
 	;== SetupEnvironment()
+	InitGlobalInfoVars()
 	FindAndActivateGameWindow(BrowserTitleKeyword, WndTitleKeyword)
 	GetGameWindowDimensions()
 	SetupUpperLeftCorner()
-	
+
 	TestEntryFunc()
 
-	SellAllFish()
-	FishesInFishcage := 0
 	FishcageCapacity := 50
-	CastCount :=  0
+	gInfoCastCount :=  0
 
+	GoSub, ShowGui
+	SellAllFish()
+	
 StartFishing:
 
+	GoSub, UpdateGui
 	CastALine()
-	CastCount :=  CastCount + 1
+	gInfoCastCount++
 
 	WaitForStrike()
 	
@@ -39,31 +42,42 @@ StartFishing:
 	{
 		If (IsFishCatched()) {
 			PullingResult := "= Catched"
-			FishesInFishcage := FishesInFishcage + 1
+			gInfoFishesInFishcage++
+			gInfoFishCatched++
 		}
 		Else If (IsCollectionCatched())
+		{
+			gInfoCollectionCatched++
 			PullingResult := "Collection"
+		}
 		Else If (IsMessageOn())
+		{
 			PullingResult := "Lost"
-		Else If (IsTreasureCatched())
+			gInfoLost++
+		}
+		Else If (IsTreasureCatched()) 
+		{
 			PullingResult := "Treasure"
+			gInfoTreasuresCatched++
+		}
 	}
 
 	WriteLineToDatafile( PullingResult, "`n`n" )
 
+	if ( IsLvlUp() )
+	{
+		gInfoLvlUp++
+	}
+
+	WaitForFishingScreen()
 	CheckingEnergyStatusAndFeeding()
 	
-	If ( FishesInFishcage >= FishcageCapacity )
+	If ( gInfoFishesInFishcage >= FishcageCapacity )
 	{
 		; MsgBox, 50 fishes catched.
 		SellAllFish()
-		FishesInFishcage := 0
+		gInfoFishesInFishcage := 0
 	}
-
-	; If ( CastCount >= 10 )
-		; GoTo, EndScript
-		
-	Sleep, 1000
 
 	GoTo, StartFishing
 
@@ -78,18 +92,81 @@ TestEntryFunc()
 {
 }
 
+; ======================== GUI ====================================================
+
+ShowGui:
+
+	guiX := X(800)
+	guiY := Y(0)
+	
+	Gui,+AlwaysOnTop
+	
+	Gui, Add, Tab, x5 y5 w260 h180, General|Options 
+	
+	Gui, Tab, 1
+	Gui, Add, GroupBox, x15 y30 w120 h65, Catched
+	Gui, Add, Text, x25  y45 w80 h15,Fishes
+	Gui, Add, Text, x110 y45 w20 h15 vguiFishCatchedQtyText, %gInfoFishCatched%
+	Gui, Add, Text, x25  y60 w80 h15,Collection items
+	Gui, Add, Text, x110 y60 w20 h15 vguiCollectionCatchedQtyText, %gInfoCollectionCatched%
+	Gui, Add, Text, x25  y75 w80 h15,Treasures
+	Gui, Add, Text, x110 y75 w20 h15 vguiTreasuresCatchedQtyText, %gInfoTreasuresCatched%
+	
+	Gui, Add, Text, x145 y45 w80 h15,Lost
+	Gui, Add, Text, x230 y45 w20 h15 vguiLostText, %gInfoLost%
+	Gui, Add, Text, x145 y60 w80 h15 cGray,Quests complted
+	Gui, Add, Text, x230 y60 w20 h15 cGray vguiQuests, %gInfoQuests%
+	Gui, Add, Text, x145 y75 w80 h15,Level Up's
+	Gui, Add, Text, x230 y75 w20 h15 vguiLvlUp, %gInfoLvlUp%
+	
+	Gui, Add, Text, x15  y100 w100 h15, Fishcage
+	Gui, Add, Text, x120 y100 w50 h15 vguiFishcageInfo, 0 / %FishcageCapacity%
+	Gui, Add, Progress, x15 y115 w240 h5 cAqua BackgroundTeal vguiFishcageProgress
+	Gui,Show,x%guiX% y%guiY% w270 h200 NoActivate, Facebook Go-Fishing trainer
+	
+Return	
+
+UpdateGui:
+
+	FishCageProgressPosition := 100 * gInfoFishesInFishcage / FishcageCapacity
+	
+	GuiControl,,guiFishCatchedQtyText, %gInfoFishCatched%
+	GuiControl,,guiCollectionCatchedQtyText, %gInfoCollectionCatched%
+	GuiControl,,guiTreasuresCatchedQtyText, %gInfoTreasuresCatched%
+	
+	GuiControl,,gInfoLost, %gInfoLost%
+	; GuiControl,,gInfoQuests, %gInfoQuests%
+	GuiControl,,gInfoLvlUp, %gInfoLvlUp%
+	
+	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %FishcageCapacity%
+	GuiControl,,guiFishcageProgress, %FishCageProgressPosition%
+	Gui, Submit, NoHide
+
+Return
+
+; ======================== Info variables management ====================================================
+
+InitGlobalInfoVars()
+{
+	global gInfoFishCatched := 0
+	global gInfoCollectionCatched := 0
+	global gInfoTreasuresCatched := 0
+	global gInfoFishesInFishcage := 0
+	global gInfoLost := 0
+	global gInfoQuests := 0
+	global gInfoLvlUp := 0
+}
+
 ; ======================== Energy management ====================================================
 
 WaitForFishingScreen()
 {
 	while ( not IsImgTagInRect( "LeftUpperCornedDefImg", 4, 7, 34, 37 ) )
-		sleep, 100
+		sleep, 50
 }
 
 CheckingEnergyStatusAndFeeding()
 {
-	WaitForFishingScreen()
-
 	Energy := GetEnergyPercents()
 
 	; If ( Energy < 20 ) 
@@ -331,7 +408,6 @@ IsPullingBarOn()
 TestPixelColor(PixelX, PixelY, TestColor)
 {
 	PixelGetColor, PixelColor, X(PixelX), Y(PixelY)
-	; WriteLineToLogfile( "{TestPixelColor}", "Pixel on " . PixelX . " is " . PixelColor )
 	If (PixelColor = TestColor)
 		Return 1
 	Else
@@ -342,13 +418,10 @@ CastALine()
 {
 	While ( !CastBtnX )
 	{
-		IsLvlUp()
 		FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
-		; Imagesearch, CastBtnX, CastBtnY, X(480), Y(480), X(600), Y(530), *30 *Trans0xFF0000 %A_ScriptDir%\Images\CastBtnTag.png
 	}
 	WriteLineToLogfile( "{CastALine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
 
-	Sleep, 500
 	MouseClick Left, CastBtnX, CastBtnY
 	MouseMove, CastBtnX, CastBtnY - 150
 }
@@ -501,12 +574,11 @@ IsMessageOn()
 
 isLvlUp()
 {
-	LvlUpResult := 0
-	If ( isImgTagInRect( "lvlUpTag", 140, 100, 200, 130 ) )
+	LvlUpResult := isImgTagInRect( "lvlUpTag", 140, 100, 200, 130 )
+	If ( LvlUpResult )
 	{
 		UncheckLvlUpSharingBox()
 		MouseClick, Left, X(430), Y(480)
-		LvlUpResult := 1
 		WriteLineToLogfile( "{isLvlUp}", "== Level up! ==" )
 		Sleep, 500
 	}
@@ -515,12 +587,11 @@ isLvlUp()
 
 IsTreasureCatched()
 {
-	TreasureResult := 0
-	If ( isImgTagInRect( "CatchTagTreasure", 280, 80, 380, 130 ) )
+	TreasureResult := isImgTagInRect( "CatchTagTreasure", 280, 80, 380, 130 )
+	If ( TreasureResult )
 	{
 		UncheckTreasureSharingBox()
 		MouseClick, Left, X(370), Y(490)
-		TreasureResult := 1
 		WriteLineToLogfile( "{TreasureResult}", "== Treasure catched! ==" )
 	}
 	Return TreasureResult
