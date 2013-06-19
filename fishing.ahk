@@ -20,6 +20,7 @@
 
 	TestEntryFunc()
 
+	gSettingUsingSpinning := 1
 	FishcageCapacity := 50
 	gInfoCastCount :=  0
 
@@ -29,10 +30,41 @@
 StartFishing:
 
 	GoSub, UpdateGui
-	CastALine()
-	gInfoCastCount++
 
-	WaitForStrike()
+	CastAgain := 1
+
+	While ( CastAgain ) 
+	{
+		CastAgain := 0
+		CastTheLine()
+		gInfoCastCount++
+
+		If ( gSettingUsingSpinning )
+		{
+			While ( not IsPullingBarOn() )
+			{
+				Sleep, 100
+			}
+
+			Click down
+			Sleep, 500
+			while ( not IsPullingBarOn() )
+			{
+				ReadyToCast := FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
+				If ( ReadyToCast ) 
+				{
+					Click up
+					CastAgain := 1
+					break
+				}
+			}
+		}
+	}
+	
+	If ( not gSettingUsingSpinning )
+		WaitForStrike()
+	
+	; MsgBox, Strike!
 	
 	Pattern := PullingTheFish()
 
@@ -414,13 +446,13 @@ TestPixelColor(PixelX, PixelY, TestColor)
 		Return 0
 }
 
-CastALine()
+CastTheLine()
 {
 	While ( !CastBtnX )
 	{
 		FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
 	}
-	WriteLineToLogfile( "{CastALine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
+	WriteLineToLogfile( "{CastTheLine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
 
 	MouseClick Left, CastBtnX, CastBtnY
 	MouseMove, CastBtnX, CastBtnY - 150
