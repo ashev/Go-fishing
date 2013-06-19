@@ -29,7 +29,7 @@
 StartFishing:
 
 	GoSub, UpdateGui
-	CastALine()
+	CastTheLine()
 	gInfoCastCount++
 
 	WaitForStrike()
@@ -90,6 +90,7 @@ ExitApp
 
 TestEntryFunc()
 {
+
 }
 
 ; ======================== GUI ====================================================
@@ -414,13 +415,18 @@ TestPixelColor(PixelX, PixelY, TestColor)
 		Return 0
 }
 
-CastALine()
+CastTheLine()
 {
 	While ( !CastBtnX )
 	{
+		if ( CheckForLvlUp() )
+		{
+			Sleep, 500
+			WaitForFishingScreen()
+		}
 		FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
 	}
-	WriteLineToLogfile( "{CastALine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
+	WriteLineToLogfile( "{CastTheLine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
 
 	MouseClick Left, CastBtnX, CastBtnY
 	MouseMove, CastBtnX, CastBtnY - 150
@@ -430,10 +436,7 @@ WaitForStrike()
 {
 	While ( not isImgTagInRect( "StrikeBtnTag", 480, 480, 600, 530 ) ) 
 	{
-		if ( CheckForLvlUp() )
-			WaitForFishingScreen()
-		else
-			Sleep, 50
+		Sleep, 50
 	}
 	
 	WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
