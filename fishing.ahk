@@ -96,12 +96,9 @@ StartFishing:
 
 	WriteLineToDatafile( PullingResult, "`n`n" )
 
-	if ( IsLvlUp() )
-	{
-		gInfoLvlUp++
-	}
-
+	CheckForLvlUp()
 	WaitForFishingScreen()
+
 	CheckingEnergyStatusAndFeeding()
 	
 	If ( gInfoFishesInFishcage >= FishcageCapacity )
@@ -111,6 +108,9 @@ StartFishing:
 		gInfoFishesInFishcage := 0
 	}
 
+	If ( gInfoCastCount > 550 )
+		MsgBox, 550 fishes catched!!!
+	
 	GoTo, StartFishing
 
 ^x::
@@ -122,6 +122,7 @@ ExitApp
 
 TestEntryFunc()
 {
+
 }
 
 ; ======================== GUI ====================================================
@@ -450,6 +451,11 @@ CastTheLine()
 {
 	While ( !CastBtnX )
 	{
+		if ( CheckForLvlUp() )
+		{
+			Sleep, 500
+			WaitForFishingScreen()
+		}
 		FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
 	}
 	WriteLineToLogfile( "{CastTheLine}", "Cast button on " . CastBtnX . ", " . CastBtnY )
@@ -461,7 +467,10 @@ CastTheLine()
 WaitForStrike()
 {
 	While ( not isImgTagInRect( "StrikeBtnTag", 480, 480, 600, 530 ) ) 
+	{
 		Sleep, 50
+	}
+	
 	WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
 }
 
@@ -535,7 +544,7 @@ IsFishCatched()
 		or isImgTagInRect( "CatchTagRecord", 300, 100, 450, 200 ) 
 		or isImgTagInRect( "TrophyCatchTag", 300, 100, 450, 200 ))
 	{
-		UncheckFishInfoSharingBox()
+		UnmarkFishInfoSharingBox()
 		MouseClick, Left, X(380), Y(450)
 		CatchedResult := 1
 		WriteLineToLogfile( "{IsFishCatched}", "Normal fish catched." )
@@ -544,27 +553,27 @@ IsFishCatched()
 	Return CatchedResult
 }
 
-UncheckFishInfoSharingBox()
+UnmarkFishInfoSharingBox()
 {
 	If ( LocateImgAndClick( "ShareFishCheckBox", 180, 430, 230, 470 ) )
 	{
-		WriteLineToLogfile( "{IsFishCatched}", "Sharing CheckBox unchecked." )
+		WriteLineToLogfile( "{IsFishCatched}", "Sharing CheckBox Unmarked." )
 	}
 }
 
-UncheckLvlUpSharingBox()
+UnmarkLvlUpSharingBox()
 {
 	If ( LocateImgAndClick( "ShareLvlUpCheckBox", 70, 460, 110, 500 ) )
 	{
-		WriteLineToLogfile( "{IsLvlUp}", "Sharing CheckBox unchecked." )
+		WriteLineToLogfile( "{CheckForLvlUp}", "Sharing CheckBox Unmarked." )
 	}
 }
 
-UncheckTreasureSharingBox()
+UnmarkTreasureSharingBox()
 {
 	If ( LocateImgAndClick( "ShareTreasureCheckBox", 170, 460, 230, 500 ) )
 	{
-		WriteLineToLogfile( "{Treasure}", "Sharing CheckBox unchecked." )
+		WriteLineToLogfile( "{Treasure}", "Sharing CheckBox Unmarked." )
 	}
 }
 
@@ -604,15 +613,18 @@ IsMessageOn()
 	Return MsgResult
 }
 
-isLvlUp()
+CheckForLvlUp()
 {
+	global gInfoLvlUp
+
 	LvlUpResult := isImgTagInRect( "lvlUpTag", 140, 100, 200, 130 )
 	If ( LvlUpResult )
 	{
-		UncheckLvlUpSharingBox()
+		gInfoLvlUp++
+		UnmarkLvlUpSharingBox()
 		MouseClick, Left, X(430), Y(480)
-		WriteLineToLogfile( "{isLvlUp}", "== Level up! ==" )
-		Sleep, 500
+		WriteLineToLogfile( "{CheckForLvlUp}", "== Level up! ==" )
+		; Sleep, 500
 	}
 	Return LvlUpResult
 }
@@ -622,7 +634,7 @@ IsTreasureCatched()
 	TreasureResult := isImgTagInRect( "CatchTagTreasure", 280, 80, 380, 130 )
 	If ( TreasureResult )
 	{
-		UncheckTreasureSharingBox()
+		UnmarkTreasureSharingBox()
 		MouseClick, Left, X(370), Y(490)
 		WriteLineToLogfile( "{TreasureResult}", "== Treasure catched! ==" )
 	}
