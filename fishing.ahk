@@ -14,57 +14,67 @@
 
 	;== SetupEnvironment()
 	InitGlobalInfoVars()
+	InitGlobalSettingsVars()
 	FindAndActivateGameWindow(BrowserTitleKeyword, WndTitleKeyword)
 	GetGameWindowDimensions()
 	SetupUpperLeftCorner()
 
 	TestEntryFunc()
 
-	gSettingUsingSpinning := 0
-	FishcageCapacity := 50
-	gInfoCastCount :=  0
-
 	GoSub, ShowGui
 	
 	Return
 
 StartFishing:
+
+	SetFishingBtnState( 0 )
+
 	FindAndActivateGameWindow(BrowserTitleKeyword, WndTitleKeyword)
 	GetGameWindowDimensions()
 	SetupUpperLeftCorner()
 
 	SellAllFish()
 	
-	While( 1 )
+	While( not gPauseFlag )
 	{
-		GoSub, UpdateGui
+		GoSub, UpdateInfoGui
 
-		HookTheFish( gSettingUsingSpinning )
-		
-		Pattern := PullingTheFish()
-
-		WriteLineToDatafile( "Pattern", Pattern )
-
-		DeterminationOfResultOfFishing()
-
-		CheckForLvlUp()
-		WaitForFishingScreen()
-
-		CheckingEnergyStatusAndFeeding()
-		
-		If ( gInfoFishesInFishcage >= FishcageCapacity )
+		If ( HookTheFish( gSettingUsingSpinning ) )
 		{
-			; MsgBox, 50 fishes catched.
-			SellAllFish()
-			gInfoFishesInFishcage := 0
+			Pattern := PullingTheFish( gSettingLeftPullingLimit, gSettingRightPullingLimit, gSettingAgressivity )
+
+			WriteLineToDatafile( "Pattern", Pattern )
+
+			ResultOfFishingDetermination()
+
+			CheckForLvlUp()
+			WaitForFishingScreen()
+
+			CheckingEnergyStatusAndFeeding()
+			
+			If ( gInfoFishesInFishcage >= gSettingFishcageCapacity )
+				SellAllFish()
 		}
 
 		If ( (gInfoFishCatched + gInfoCollectionCatched) > 550 )
 			MsgBox, 550 items catched!!!
 	}
+	
+	SetFishingBtnState(1)
+	gPauseFlag := 0
+	Gui, Show
+	
+Return
 
-^x::
+!^p::
+	gPauseFlag := 1
+	SetFishingBtnState(2)
+Return
+
+^q::
 EndScript:
+GuiEscape:
+GuiClose:
 
 ExitApp
 
@@ -81,86 +91,139 @@ ShowGui:
 
 	guiX := X(760)
 	guiY := Y(0)
+	TackleName := GetTackleName( gSettingUsingSpinning )
 	
 	Gui,  +AlwaysOnTop
 	Gui, Add, Tab, x5 y5 w265 h400, General|Settings|Options
 
 	Gui, Tab, 1, 1
-	Gui, Add, Button, x20 y40 w115 h30 gStartFishing, Start fishing!
+	Gui, Add, Button, x20 y40 w115 h40 vStartFishingBtn gStartFishing, Start with %TackleName%!
 	Gui, Add, Text, x145 y40 w110 h15 Center, Time elapsed
-	Gui, Add, Text, x145 y55 w110 h15 Center, %gInfoTimeElapsed%
-	Gui, Add, GroupBox, x15 y80 w120 h80, Catched
-	Gui, Add, Text, x25 y95 w80 h15, Fishes
-	Gui, Add, Text, x110 y95 w20 h15 vguiFishCatchedQtyText, %gInfoFishCatched%
-	Gui, Add, Text, x25 y110 w80 h15, Collection items
-	Gui, Add, Text, x110 y110 w20 h15 vguiCollectionCatchedQtyText, %gInfoCollectionCatched%
-	Gui, Add, Text, x25 y125 w80 h15, Treasures
-	Gui, Add, Text, x110 y125 w20 h15 vguiTreasuresCatchedQtyText, %gInfoTreasuresCatched%
-	Gui, Add, Text, x25 y140 w80 h15, Total items
-	Gui, Add, Text, x110 y140 w20 h15 vguiTotalCatchedText, %gInfoTotalCatched%
+	Gui, Add, Text, x145 y55 w110 h15 Center vgInfoTimeElapsed, %gInfoTimeElapsed%
+	Gui, Add, GroupBox, x15 y85 w120 h80, Catched
+	Gui, Add, Text, x25 y100 w80 h15, Fishes
+	Gui, Add, Text, x110 y100 w20 h15 vgInfoFishCatched, %gInfoFishCatched%
+	Gui, Add, Text, x25 y115 w80 h15, Collection items
+	Gui, Add, Text, x110 y115 w20 h15 vgInfoCollectionCatched, %gInfoCollectionCatched%
+	Gui, Add, Text, x25 y130 w80 h15, Treasures
+	Gui, Add, Text, x110 y130 w20 h15 vgInfoTreasuresCatched, %gInfoTreasuresCatched%
+	Gui, Add, Text, x25 y145 w80 h15, Total items
+	Gui, Add, Text, x110 y145 w20 h15 vgInfoTotalCatched, %gInfoTotalCatched%
 
-	Gui, Add, Text, x150 y95 w80 h15, Cast made
-	Gui, Add, Text, x235 y95 w20 h15, %gInfoLost%
-	Gui, Add, Text, x150 y110 w80 h15, Lost
-	Gui, Add, Text, x235 y110 w20 h15 vguiLostText, %gInfoLost%
-	Gui, Add, Text, x150 y125 w80 h15 cGray, Quests complted
-	Gui, Add, Text, x235 y125 w20 h15 cGray vguiQuests, %gInfoQuests%
-	Gui, Add, Text, x150 y140 w80 h15, Level Up's
-	Gui, Add, Text, x235 y140 w20 h15 vguiLvlUp, %gInfoLvlUp%
+	Gui, Add, Text, x150 y100 w80 h15, Cast made
+	Gui, Add, Text, x235 y100 w20 h15 vgInfoCastCount, %gInfoCastCount%
+	Gui, Add, Text, x150 y115 w80 h15, Lost
+	Gui, Add, Text, x235 y115 w20 h15 vgInfoLost, %gInfoLost%
+	Gui, Add, Text, x150 y130 w80 h15 Disabled, Quests complted
+	Gui, Add, Text, x235 y130 w20 h15 Disabled vgInfoQuests, %gInfoQuests%
+	Gui, Add, Text, x150 y145 w80 h15, Level Up
+	Gui, Add, Text, x235 y145 w20 h15 vgInfoLvlUp, %gInfoLvlUp%
 
-	Gui, Add, Text, x15 y165 w100 h15, Fishcage
-	Gui, Add, Text, x120 y165 w50 h15 vguiFishcageInfo, 0 / %FishcageCapacity%
-	Gui, Add, Progress, x15 y180 w240 h5 cAqua BackgroundTeal vguiFishcageProgress, 
+	Gui, Add, Text, x15 y170 w100 h15, Fishcage
+	Gui, Add, Text, x120 y170 w50 h15 vguiFishcageInfo, 0 / %gSettingFishcageCapacity%
+	Gui, Add, Progress, x15 y185 w240 h5 cAqua BackgroundTeal vguiFishcageProgress, 
 
 	Gui, Tab, 2, 1
 	
 	Gui, Add, GroupBox, x15 y35 w245 h60, Tackle
-	Gui, Add, Radio, x25 y50 w55 h15, Floating
-	Gui, Add, Radio, x25 y70 w85 h15, Spinning
-	Gui, Add, Checkbox, x110 y50 w125 h15, Monitoring the integrity
+	Gui, Add, Radio, x25 y50 w55 h15 vTackleType gUpdateTackle Checked1, Floating
+	Gui, Add, Radio, x25 y70 w85 h15             gUpdateTackle         , Spinning
+	Gui, Add, Checkbox, x110 y50 w125 h15 Disabled, Monitoring the integrity
 	Gui, Add, GroupBox, x15 y100 w245 h105, Fishcage
 	Gui, Add, Text, x25 y120 w50 h15, Capacity
-	Gui, Add, DropDownList, x25 y135 w50 h20 R4 vguiFishCageCapacity gGuiSetFishcageCapacity Choose1, 50|75|100|150
+	Gui, Add, DropDownList, x25 y135 w50 h20 R4 vguiFishCageCapacity gUpdateFishcageCapacity Choose1, 50|75|100|150
 	Gui, Add, GroupBox, x115 y115 w135 h80, On full
-	Gui, Add, Radio, x125 y130 w100 h15, Sell fish
-	Gui, Add, Radio, x125 y150 w100 h15, Cut stakes
-	Gui, Add, Radio, x125 y170 w100 h15, Pause fishing
+	Gui, Add, Radio, x125 y130 w100 h15 Checked1, Sell fish
+	Gui, Add, Radio, x125 y150 w100 h15 Disabled, Cut stakes
+	Gui, Add, Radio, x125 y170 w100 h15 Disabled, Pause fishing
 
-	Gui, Add, GroupBox, x15 y210 w240 h170, Pulling
+	Gui, Add, GroupBox, x15 y210 w240 h185, Pulling
 	Gui, Add, Text, x30 y230 w45 h15, Left limit
-	Gui, Add, Slider, x20 y245 w230 h25 +Tickinterval1 vguiLeftLimit range1-20, 25
+	Gui, Add, Text, x130 y230 w70 h15 vSettingLeftPullingLimitText, %gSettingLeftPullingLimit%
+	Gui, Add, Slider, x20 y245 w230 h25 +Tickinterval1 range1-20 vgSettingLeftPullingLimit gUpdatePullingSettings, %gSettingLeftPullingLimit%
 	Gui, Add, Text, x30 y280 w45 h15, Right limit
-	Gui, Add, Slider, x20 y295 w230 h25 +Tickinterval1 vguiRightLimit range1-20, 25
-	Gui, Add, Text, x30 y330 w70 h15, Agressivness
-	Gui, Add, Slider, x20 y345 w230 h25 +Tickinterval1 vguiPullingAggresivity range1-10, 25
+	Gui, Add, Text, x130 y280 w70 h15 vSettingRightPullingLimitText, %gSettingRightPullingLimit%
+	Gui, Add, Slider, x20 y295 w230 h25 +Tickinterval1 range1-20 vgSettingRightPullingLimit gUpdatePullingSettings, %gSettingRightPullingLimit%
+	Gui, Add, Text, x30 y330 w80 h15, Aggressiveness
+	Gui, Add, Text, x130 y330 w70 h15 vSettingAgressivityText, %gSettingAgressivity%
+	Gui, Add, Slider, x20 y345 w230 h25 +Tickinterval1 range1-10 vgSettingAgressivity gUpdatePullingSettings, %gSettingAgressivity%
+	Gui, Add, Text, x30 y370 w70 h15, High
+	Gui, Add, Text, x170 y370 w70 h15 Right, Low
 
 	Gui, Show, x%guiX% y%guiY% w275 h420, Facebook Go-Fishing trainer
 	
 Return	
 
-GuiSetFishcageCapacity:
+SetFishingBtnState( BtnState )
+{
+	global gSettingUsingSpinning
+	
+	If ( BtnState = 1 )
+	{
+		TackleName := GetTackleName( gSettingUsingSpinning )
+		GuiControl,Enable,StartFishingBtn
+		GuiControl,,StartFishingBtn, Start with %TackleName%!
+	}
+	Else If ( BtnState = 2 )
+	{
+		GuiControl,Disable,StartFishingBtn
+		GuiControl,,StartFishingBtn, Pause initiated `n Please wait
+	}
+	Else
+	{
+		GuiControl,Disable,StartFishingBtn
+		GuiControl,,StartFishingBtn, WORKING `n Ctrl+Alt+P for pause
+	}
+}
+
+GetTackleName( TackleType )
+{
+	Return ( TackleType=0 ? " floating tackle" : " spinning tackle" )
+}
+
+UpdateFishcageCapacity:
 
 	GuiControlGet,guiFishCageCapacity,,guiFishCageCapacity
 	
-	FishcageCapacity := guiFishCageCapacity
+	gSettingFishcageCapacity := guiFishCageCapacity
 		
-	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %FishcageCapacity%
+	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %gSettingFishcageCapacity%
 	
 Return
 
-UpdateGui:
+UpdateTackle:
 
-	FishCageProgressPosition := 100 * gInfoFishesInFishcage / FishcageCapacity
+	Gui, Submit, NoHide
+	gSettingUsingSpinning := TackleType - 1
+	TackleName := GetTackleName( gSettingUsingSpinning )
+	GuiControl,,StartFishingBtn, Start with %TackleName%!
+
+Return
+
+UpdatePullingSettings:
+
+	GuiControl,,SettingLeftPullingLimitText, %gSettingLeftPullingLimit%
+	GuiControl,,SettingRightPullingLimitText, %gSettingRightPullingLimit%
+	GuiControl,,SettingAgressivityText, %gSettingAgressivity%
+
+Return
+
+UpdateInfoGui:
+
+	FishCageProgressPosition := 100 * gInfoFishesInFishcage / gSettingFishcageCapacity
 	
-	GuiControl,,guiFishCatchedQtyText, %gInfoFishCatched%
-	GuiControl,,guiCollectionCatchedQtyText, %gInfoCollectionCatched%
-	GuiControl,,guiTreasuresCatchedQtyText, %gInfoTreasuresCatched%
+	GuiControl,,gInfoFishCatched, %gInfoFishCatched%
+	GuiControl,,gInfoCollectionCatched, %gInfoCollectionCatched%
+	GuiControl,,gInfoTreasuresCatched, %gInfoTreasuresCatched%
+	gInfoTotalCatched := gInfoFishCatched + gInfoCollectionCatched + gInfoTreasuresCatched
+	GuiControl,,gInfoTotalCatched, %gInfoTotalCatched%
 	
+	GuiControl,,gInfoCastCount, %gInfoCastCount%
 	GuiControl,,gInfoLost, %gInfoLost%
 	; GuiControl,,gInfoQuests, %gInfoQuests%
 	GuiControl,,gInfoLvlUp, %gInfoLvlUp%
 	
-	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %FishcageCapacity%
+	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %gSettingFishcageCapacity%
 	GuiControl,,guiFishcageProgress, %FishCageProgressPosition%
 	Gui, Submit, NoHide
 
@@ -170,13 +233,27 @@ Return
 
 InitGlobalInfoVars()
 {
-	global gInfoFishCatched := 0
+	global gPauseFlag := 0
+	
+	global gInfoFishCatched       := 0
 	global gInfoCollectionCatched := 0
-	global gInfoTreasuresCatched := 0
-	global gInfoFishesInFishcage := 0
-	global gInfoLost := 0
+	global gInfoTreasuresCatched  := 0
+	global gInfoFishesInFishcage  := 0
+	global gInfoTotalCatched      := 0
+	global gInfoLost   := 0
 	global gInfoQuests := 0
-	global gInfoLvlUp := 0
+	global gInfoLvlUp  := 0
+	global gInfoCastCount :=  0
+}
+	
+InitGlobalSettingsVars()
+{
+	global gSettingUsingSpinning     := 0
+	global gSettingFishcageCapacity  := 50
+	global gSettingLeftPullingLimit  := 4
+	global gSettingRightPullingLimit := 16
+	global gSettingAgressivity       := 3
+
 }
 
 ; ======================== Energy management ====================================================
@@ -267,14 +344,16 @@ GetEnergyPercents()
 HookTheFish( isSpinningUsed )
 {
 	global gInfoCastCount
+	global gPauseFlag
 
 	CastAgain := 1
 
-	While ( CastAgain ) 
+	While ( CastAgain and (not gPauseFlag) ) 
 	{
 		CastAgain := 0
 		CastTheLine()
 		gInfoCastCount++
+		GoSub, UpdateInfoGui
 
 		If ( isSpinningUsed )
 		{
@@ -283,8 +362,10 @@ HookTheFish( isSpinningUsed )
 
 			Click down
 
-			while ( (not IsPullingBarOn()) and (not CastAgain) )
+			FishOnHook := 0
+			while ( (not FishOnHook) and (not CastAgain) )
 			{
+				FishOnHook := IsPullingBarOn()
 				CastAgain := FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
 				If ( CastAgain ) 
 					Click up
@@ -293,7 +374,9 @@ HookTheFish( isSpinningUsed )
 	}
 
 	If ( not isSpinningUsed )
-		WaitForStrike()
+		FishOnHook := WaitForStrike()
+		
+	Return FishOnHook
 }
 
 WaitForPullingBar()
@@ -305,12 +388,11 @@ WaitForPullingBar()
 	}
 }
 	
-PullingTheFish()
+PullingTheFish( LeftPullingLimit, RightPullingLimit, Agressivity )
 {
-	RightPullingLimit := 16
-	LeftPullingLimit  := 4
-	PrevOverloadState := 0
+	
 	CalmCycles := 0
+	PrevOverloadState := 0
 	PullingPattern := ""
 	
 	SwitchDirection( PullingDirection )
@@ -341,7 +423,7 @@ PullingTheFish()
 			{
 				SwitchDirection( PullingDirection )
 				CalmCycles++
-				If ( CalmCycles > 3 ) {
+				If ( CalmCycles > Agressivity ) {
 					CalmCycles := 0
 					LeftPullingLimit--
 					RightPullingLimit++
@@ -488,17 +570,26 @@ CastTheLine()
 
 WaitForStrike()
 {
-	While ( not isImgTagInRect( "StrikeBtnTag", 480, 480, 600, 530 ) ) 
+	global gPauseFlag
+
+	FishOnHook := 0
+	While ( (not FishOnHook) and (not gPauseFlag) )
 	{
+		FishOnHook := isImgTagInRect( "StrikeBtnTag", 480, 480, 600, 530 ) 
 		Sleep, 50
 	}
 	
-	WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
+	If ( FishOnHook )
+		WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
+	Else
+		MouseClick Left
+		
+	Return FishOnHook
 }
 
 ; ======================== Fishing management sequence ====================================================
 
-DeterminationOfResultOfFishing()
+ResultOfFishingDetermination()
 {
 	global gInfoFishesInFishcage
 	global gInfoFishCatched
@@ -535,6 +626,8 @@ DeterminationOfResultOfFishing()
 
 SellAllFish()
 {
+	global gInfoFishesInFishcage := 0
+	
 	MouseMove, X(50), Y(350)
 	Sleep, 500
 	
