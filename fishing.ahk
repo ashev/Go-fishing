@@ -4,8 +4,6 @@
 	SetWorkingDir, %A_ScriptDir%
 	SetBatchLines, -1
 
-	DebugFile = %A_ScriptDir%\Report_Run_%A_Now%.log
-	DataFile = %A_ScriptDir%\Pulling_data.log
 	WndTitleKeyword := "Go Fishing"
 	BrowserTitleKeyword := "- Google Chrome"
 	
@@ -42,14 +40,11 @@ StartFishing:
 		If ( HookTheFish( gSettingUsingSpinning ) )
 		{
 			Pattern := PullingTheFish( gSettingLeftPullingLimit, gSettingRightPullingLimit, gSettingAgressivity )
-
 			WriteLineToDatafile( "Pattern", Pattern )
 
 			ResultOfFishingDetermination()
-
 			CheckForLvlUp()
 			WaitForFishingScreen()
-
 			CheckingEnergyStatusAndFeeding()
 			
 			If ( gInfoFishesInFishcage >= gSettingFishcageCapacity )
@@ -94,30 +89,35 @@ ShowGui:
 	TackleName := GetTackleName( gSettingUsingSpinning )
 	
 	Gui,  +AlwaysOnTop
-	Gui, Add, Tab, x5 y5 w265 h400, General|Settings|Options
+	Gui, Add, Tab, x5 y5 w260 h255, General|Settings|Options
 
 	Gui, Tab, 1, 1
-	Gui, Add, Button, x20 y40 w115 h40 vStartFishingBtn gStartFishing, Start with %TackleName%!
-	Gui, Add, Text, x145 y40 w110 h15 Center, Time elapsed
-	Gui, Add, Text, x145 y55 w110 h15 Center vgInfoTimeElapsed, %gInfoTimeElapsed%
+	Gui, Add, Button, x15 y40 w120 h40 vStartFishingBtn gStartFishing, Start with %TackleName%!
+	Gui, Add, GroupBox, x145 y35 w110 h55, Tackle
+	Gui, Add, Radio, x155 y50 w75 h15 vTackleType gUpdateTackle Checked1, Floating
+	Gui, Add, Radio, x155 y65 w75 h15             gUpdateTackle         , Spinning
+
+	; Gui, Add, Text, x145 y40 w110 h15 Center, Time elapsed
+	; Gui, Add, Text, x145 y55 w110 h15 Center vgInfoTimeElapsed, %gInfoTimeElapsed%
+
 	Gui, Add, GroupBox, x15 y85 w120 h80, Catched
 	Gui, Add, Text, x25 y100 w80 h15, Fishes
-	Gui, Add, Text, x110 y100 w20 h15 vgInfoFishCatched, %gInfoFishCatched%
+	Gui, Add, Text, x100 y100 w30 h15 Right vgInfoFishCatched, %gInfoFishCatched%
 	Gui, Add, Text, x25 y115 w80 h15, Collection items
-	Gui, Add, Text, x110 y115 w20 h15 vgInfoCollectionCatched, %gInfoCollectionCatched%
+	Gui, Add, Text, x100 y115 w30 h15 Right vgInfoCollectionCatched, %gInfoCollectionCatched%
 	Gui, Add, Text, x25 y130 w80 h15, Treasures
-	Gui, Add, Text, x110 y130 w20 h15 vgInfoTreasuresCatched, %gInfoTreasuresCatched%
+	Gui, Add, Text, x100 y130 w30 h15 Right vgInfoTreasuresCatched, %gInfoTreasuresCatched%
 	Gui, Add, Text, x25 y145 w80 h15, Total items
-	Gui, Add, Text, x110 y145 w20 h15 vgInfoTotalCatched, %gInfoTotalCatched%
+	Gui, Add, Text, x100 y145 w30 h15 Right vgInfoTotalCatched, %gInfoTotalCatched%
 
 	Gui, Add, Text, x150 y100 w80 h15, Cast made
-	Gui, Add, Text, x235 y100 w20 h15 vgInfoCastCount, %gInfoCastCount%
+	Gui, Add, Text, x225 y100 w30 h15 Right vgInfoCastCount, %gInfoCastCount%
 	Gui, Add, Text, x150 y115 w80 h15, Lost
-	Gui, Add, Text, x235 y115 w20 h15 vgInfoLost, %gInfoLost%
-	Gui, Add, Text, x150 y130 w80 h15 Disabled, Quests complted
-	Gui, Add, Text, x235 y130 w20 h15 Disabled vgInfoQuests, %gInfoQuests%
+	Gui, Add, Text, x225 y115 w30 h15 Right vgInfoLost, %gInfoLost%
+	Gui, Add, Text, x150 y130 w80 h15 Disabled, Quest ended
+	Gui, Add, Text, x225 y130 w30 h15 Disabled Right vgInfoQuests, %gInfoQuests%
 	Gui, Add, Text, x150 y145 w80 h15, Level Up
-	Gui, Add, Text, x235 y145 w20 h15 vgInfoLvlUp, %gInfoLvlUp%
+	Gui, Add, Text, x225 y145 w30 h15 Right vgInfoLvlUp, %gInfoLvlUp%
 
 	Gui, Add, Text, x15 y170 w100 h15, Fishcage
 	Gui, Add, Text, x120 y170 w50 h15 vguiFishcageInfo, 0 / %gSettingFishcageCapacity%
@@ -125,32 +125,31 @@ ShowGui:
 
 	Gui, Tab, 2, 1
 	
-	Gui, Add, GroupBox, x15 y35 w245 h60, Tackle
-	Gui, Add, Radio, x25 y50 w55 h15 vTackleType gUpdateTackle Checked1, Floating
-	Gui, Add, Radio, x25 y70 w85 h15             gUpdateTackle         , Spinning
-	Gui, Add, Checkbox, x110 y50 w125 h15 Disabled, Monitoring the integrity
-	Gui, Add, GroupBox, x15 y100 w245 h105, Fishcage
-	Gui, Add, Text, x25 y120 w50 h15, Capacity
-	Gui, Add, DropDownList, x25 y135 w50 h20 R4 vguiFishCageCapacity gUpdateFishcageCapacity Choose1, 50|75|100|150
-	Gui, Add, GroupBox, x115 y115 w135 h80, On full
-	Gui, Add, Radio, x125 y130 w100 h15 Checked1, Sell fish
-	Gui, Add, Radio, x125 y150 w100 h15 Disabled, Cut stakes
-	Gui, Add, Radio, x125 y170 w100 h15 Disabled, Pause fishing
+	Gui, Add, Text, x15 y40 w100 h15, Fishcage capacity
+	Gui, Add, DropDownList, x115 y35 w50 h21 R4 Choose1 vguiFishCageCapacity gUpdateFishcageCapacity, 50|75|100|150
 
-	Gui, Add, GroupBox, x15 y210 w240 h185, Pulling
-	Gui, Add, Text, x30 y230 w45 h15, Left limit
-	Gui, Add, Text, x130 y230 w70 h15 vSettingLeftPullingLimitText, %gSettingLeftPullingLimit%
-	Gui, Add, Slider, x20 y245 w230 h25 +Tickinterval1 range1-20 vgSettingLeftPullingLimit gUpdatePullingSettings, %gSettingLeftPullingLimit%
-	Gui, Add, Text, x30 y280 w45 h15, Right limit
-	Gui, Add, Text, x130 y280 w70 h15 vSettingRightPullingLimitText, %gSettingRightPullingLimit%
-	Gui, Add, Slider, x20 y295 w230 h25 +Tickinterval1 range1-20 vgSettingRightPullingLimit gUpdatePullingSettings, %gSettingRightPullingLimit%
-	Gui, Add, Text, x30 y330 w80 h15, Aggressiveness
-	Gui, Add, Text, x130 y330 w70 h15 vSettingAgressivityText, %gSettingAgressivity%
-	Gui, Add, Slider, x20 y345 w230 h25 +Tickinterval1 range1-10 vgSettingAgressivity gUpdatePullingSettings, %gSettingAgressivity%
-	Gui, Add, Text, x30 y370 w70 h15, High
-	Gui, Add, Text, x170 y370 w70 h15 Right, Low
+	Gui, Add, GroupBox, x15 y65 w240 h185, Pulling
+	Gui, Add, Text, x30 y85 w45 h15, Left limit
+	Gui, Add, Text, x130 y85 w70 h15 vSettingLeftPullingLimitText, %gSettingLeftPullingLimit%
+	Gui, Add, Slider, x20 y100 w230 h25 +Tickinterval1 range1-20 vgSettingLeftPullingLimit gUpdatePullingSettings, %gSettingLeftPullingLimit%
+	Gui, Add, Text, x30 y135 w45 h15, Right limit
+	Gui, Add, Text, x130 y135 w70 h15 vSettingRightPullingLimitText, %gSettingRightPullingLimit%
+	Gui, Add, Slider, x20 y150 w230 h25 +Tickinterval1 range1-20 vgSettingRightPullingLimit gUpdatePullingSettings, %gSettingRightPullingLimit%
+	Gui, Add, Text, x30 y185 w80 h15, Aggressiveness
+	Gui, Add, Text, x130 y185 w70 h15 vSettingAgressivityText, %gSettingAgressivity%
+	Gui, Add, Slider, x20 y200 w230 h25 +Tickinterval1 range1-10 vgSettingAgressivity gUpdatePullingSettings, %gSettingAgressivity%
+	Gui, Add, Text, x30 y225 w70 h15, High
+	Gui, Add, Text, x170 y225 w70 h15 Right, Low
 
-	Gui, Show, x%guiX% y%guiY% w275 h420, Facebook Go-Fishing trainer
+	Gui, Tab, 3, 1
+	
+	Gui, Add, Checkbox, x15 y40 w205 h15 Disabled, Tackle integrity monitoring
+	Gui, Add, GroupBox, x15 y60 w135 h70, When fishcage is full
+	Gui, Add, Radio, x25 y75 w100 h15 Checked1, Sell fish
+	Gui, Add, Radio, x25 y90 w100 h15 Disabled, Cut stakes
+	Gui, Add, Radio, x25 y105 w100 h15 Disabled, Pause fishing
+
+	Gui, Show, x%guiX% y%guiY% w270 h265, Go-Fishing trainer
 	
 Return	
 
@@ -240,10 +239,10 @@ InitGlobalInfoVars()
 	global gInfoTreasuresCatched  := 0
 	global gInfoFishesInFishcage  := 0
 	global gInfoTotalCatched      := 0
-	global gInfoLost   := 0
-	global gInfoQuests := 0
-	global gInfoLvlUp  := 0
-	global gInfoCastCount :=  0
+	global gInfoCastCount := 0
+	global gInfoLost      := 0
+	global gInfoQuests    := 0
+	global gInfoLvlUp     := 0
 }
 	
 InitGlobalSettingsVars()
@@ -855,14 +854,12 @@ GetGameWindowDimensions()
 
 WriteLineToLogfile(CalledFromAddress = "", StringToWrite = "")
 {
-	global DebugFile
-	FileAppend, %A_NowUTC% :: %CalledFromAddress% - %StringToWrite%`n, %DebugFile%
+	FileAppend, %A_NowUTC% :: %CalledFromAddress% - %StringToWrite%`n, %A_ScriptDir%\Report_Run_%A_Now%.log
 }
 
 WriteLineToDatafile(PullingResult, PullingPattern)
 {
-	global DataFile
-	FileAppend, %PullingResult%`t %PullingPattern%`n, %DataFile%
+	FileAppend, %PullingResult%`t %PullingPattern%`n, %A_ScriptDir%\Pulling_data.log
 }
 
 ;================== Imported functions =============================
