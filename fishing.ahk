@@ -4,34 +4,27 @@
 	SetWorkingDir, %A_ScriptDir%
 	SetBatchLines, -1
 
-	WndTitleKeyword := "Go Fishing"
-	BrowserTitleKeyword := "- Google Chrome"
-	
 	WriteLineToLogfile( A_LineNumber, "=========================" )
 	WriteLineToLogfile( A_LineNumber, "====== Starting up ======" )
 
-	;== SetupEnvironment()
 	InitGlobalInfoVars()
 	InitGlobalSettingsVars()
-	FindAndActivateGameWindow(BrowserTitleKeyword, WndTitleKeyword)
+	FindAndActivateGameWindow()
 	GetGameWindowDimensions()
 	SetupUpperLeftCorner()
 
-	TestEntryFunc()
-
 	GoSub, ShowGui
 	
-	Return
+Return
 
 StartFishing:
 
 	SetFishingBtnState( 0 )
 
-	FindAndActivateGameWindow(BrowserTitleKeyword, WndTitleKeyword)
+	FindAndActivateGameWindow()
 	GetGameWindowDimensions()
 	SetupUpperLeftCorner()
-
-	SellAllFish()
+	ManageFishcage()
 	
 	While( not gPauseFlag )
 	{
@@ -48,7 +41,7 @@ StartFishing:
 			CheckingEnergyStatusAndFeeding()
 			
 			If ( gInfoFishesInFishcage >= gSettingFishcageCapacity )
-				SellAllFish()
+				ManageFishcage()
 		}
 
 		If ( (gInfoFishCatched + gInfoCollectionCatched) > 550 )
@@ -75,10 +68,6 @@ ExitApp
 
 ; ======================== Body end ====================================================
 
-TestEntryFunc()
-{
-
-}
 
 ; ======================== GUI ====================================================
 
@@ -160,19 +149,18 @@ SetFishingBtnState( BtnState )
 	If ( BtnState = 1 )
 	{
 		TackleName := GetTackleName( gSettingUsingSpinning )
-		GuiControl,Enable,StartFishingBtn
-		GuiControl,,StartFishingBtn, Start with %TackleName%!
+		SetButtonStateAndText( "StartFishingBtn", "Enable", "Start with " . TackleName . "!"  )
 	}
 	Else If ( BtnState = 2 )
-	{
-		GuiControl,Disable,StartFishingBtn
-		GuiControl,,StartFishingBtn, Pause initiated `n Please wait
-	}
+		SetButtonStateAndText( "StartFishingBtn", "Disable", "Pause initiated `n Please wait" )
 	Else
-	{
-		GuiControl,Disable,StartFishingBtn
-		GuiControl,,StartFishingBtn, WORKING `n Ctrl+Alt+P for pause
-	}
+		SetButtonStateAndText( "StartFishingBtn", "Disable", "WORKING `n Ctrl+Alt+P for pause" )
+}
+
+SetButtonStateAndText( BtnId, State, Text )
+{
+	GuiControl,%State%,%BtnId%
+	GuiControl,,%BtnId%, %Text%
 }
 
 GetTackleName( TackleType )
@@ -623,7 +611,7 @@ ResultOfFishingDetermination()
 	WriteLineToDatafile( PullingResult, "`n`n" )
 }
 
-SellAllFish()
+ManageFishcage()
 {
 	global gInfoFishesInFishcage := 0
 	
@@ -816,8 +804,11 @@ Y(yCoord)
 	return yCoord + UpperLeftCornerY
 }
 
-FindAndActivateGameWindow(KeywordInBrowserTitle, KeywordInGameTabTitle)
+FindAndActivateGameWindow()
 {
+	KeywordInBrowserTitle := "- Google Chrome"
+	KeywordInGameTabTitle := "Go Fishing"
+
 	SetTitleMatchMode, 2
 	WinActivate, %KeywordInBrowserTitle%
 
