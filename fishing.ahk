@@ -399,6 +399,7 @@ WaitForPullingBar()
 PullingTheFish( LeftPullingLimit, RightPullingLimit, Agressivity )
 {
 	
+	WriteLineToLogfile( "{PullingTheFish}", "Pulling started" )
 	CalmCycles := 0
 	PrevOverloadState := 0
 	PullingPattern := ""
@@ -441,7 +442,7 @@ PullingTheFish( LeftPullingLimit, RightPullingLimit, Agressivity )
 		PullingPattern := PullingPattern . PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit) 
 		PrevOverloadState := RodOverloadState
 	}
-	; WriteLineToLogfile( "{PullingTheFish}", "Pulling finished" )
+	WriteLineToLogfile( "{PullingTheFish}", "Pulling finished" )
 	Return PullingPattern
 }
 
