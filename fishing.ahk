@@ -383,7 +383,7 @@ HookTheFish( isSpinningUsed )
 	If ( not isSpinningUsed )
 		FishOnHook := WaitForStrike()
 		
-	WriteLineToLogfile( "{HookTheFish}", "Exit" )
+	WriteLineToLogfile( "{HookTheFish}", "Exit. FishOnHook = " . FishOnHook )
 	Return FishOnHook
 }
 
@@ -595,8 +595,8 @@ WaitForStrike()
 	If ( FishOnHook )
 	{
 		WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
-		MouseClick Left
 	}
+	MouseClick Left
 		
 	Return FishOnHook
 }
