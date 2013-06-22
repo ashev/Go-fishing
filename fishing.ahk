@@ -390,8 +390,11 @@ HookTheFish( isSpinningUsed )
 WaitForPullingBar()
 {
 	i := 0
-	while ( ( not IsPullingBarOn() ) and ( i < 1000 ) )
+	PullingBarState := IsPullingBarOn()
+	while ( ( not PullingBarState ) and ( i < 1000 ) )
 	{
+		Sleep, 100
+		PullingBarState := IsPullingBarOn()
 		i++
 	}
 }
@@ -405,7 +408,7 @@ PullingTheFish( LeftPullingLimit, RightPullingLimit, Agressivity )
 	PullingPattern := ""
 	
 	SwitchDirection( PullingDirection )
-	WaitForPullingBar()
+	; WaitForPullingBar()
 	
 	PullingProgress := GetPullingBarProgress( PullingDirection, 0, "init")
 	PullingPattern := PullingPattern . PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit)
@@ -590,9 +593,10 @@ WaitForStrike()
 	}
 	
 	If ( FishOnHook )
+	{
 		WriteLineToLogfile( "{WaitForStrike}", "Fish strike detected!" )
-	Else
 		MouseClick Left
+	}
 		
 	Return FishOnHook
 }
