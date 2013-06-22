@@ -3,7 +3,8 @@
 
 	SetWorkingDir, %A_ScriptDir%
 	SetBatchLines, -1
-
+	gDebugFile = %A_ScriptDir%\Report_Run_%A_Now%.log
+	
 	WriteLineToLogfile( A_LineNumber, "=========================" )
 	WriteLineToLogfile( A_LineNumber, "====== Starting up ======" )
 
@@ -28,18 +29,20 @@ StartFishing:
 	
 	While( not gPauseFlag )
 	{
-		GoSub, UpdateInfoGui
-
 		If ( HookTheFish( gSettingUsingSpinning ) )
 		{
+			WriteLineToLogfile( A_LineNumber, "Fish hooked, start pulling." )
+
 			Pattern := PullingTheFish( gSettingLeftPullingLimit, gSettingRightPullingLimit, gSettingAgressivity )
 			WriteLineToDatafile( "Pattern", Pattern )
 
 			ResultOfFishingDetermination()
 			CheckForLvlUp()
+			GoSub, UpdateInfoGui
+			WriteLineToLogfile( A_LineNumber, "-> WaitForFishingScreen"  )
 			WaitForFishingScreen()
 			CheckingEnergyStatusAndFeeding()
-			
+
 			If ( gInfoFishesInFishcage >= gSettingFishcageCapacity )
 				ManageFishcage()
 		}
@@ -78,7 +81,7 @@ ShowGui:
 	TackleName := GetTackleName( gSettingUsingSpinning )
 	
 	Gui,  +AlwaysOnTop
-	Gui, Add, Tab, x5 y5 w260 h255, General|Settings|Options
+	Gui, Add, Tab, x5 y5 w260 h255, General|Fishcage/Pulling|Other settings
 
 	Gui, Tab, 1, 1
 	Gui, Add, Button, x15 y40 w120 h40 vStartFishingBtn gStartFishing, Start with %TackleName%!
@@ -173,8 +176,16 @@ UpdateFishcageCapacity:
 	GuiControlGet,guiFishCageCapacity,,guiFishCageCapacity
 	
 	gSettingFishcageCapacity := guiFishCageCapacity
+	
+	GoSub, UpdateFishcageProgress
 		
+Return
+
+UpdateFishcageProgress:
+
 	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %gSettingFishcageCapacity%
+	FishCageProgressPosition := 100 * gInfoFishesInFishcage / gSettingFishcageCapacity
+	GuiControl,,guiFishcageProgress, %FishCageProgressPosition%
 	
 Return
 
@@ -197,8 +208,6 @@ Return
 
 UpdateInfoGui:
 
-	FishCageProgressPosition := 100 * gInfoFishesInFishcage / gSettingFishcageCapacity
-	
 	GuiControl,,gInfoFishCatched, %gInfoFishCatched%
 	GuiControl,,gInfoCollectionCatched, %gInfoCollectionCatched%
 	GuiControl,,gInfoTreasuresCatched, %gInfoTreasuresCatched%
@@ -210,8 +219,7 @@ UpdateInfoGui:
 	; GuiControl,,gInfoQuests, %gInfoQuests%
 	GuiControl,,gInfoLvlUp, %gInfoLvlUp%
 	
-	GuiControl,,guiFishcageInfo, %gInfoFishesInFishcage% / %gSettingFishcageCapacity%
-	GuiControl,,guiFishcageProgress, %FishCageProgressPosition%
+	GoSub, UpdateFishcageProgress
 	Gui, Submit, NoHide
 
 Return
@@ -249,6 +257,8 @@ WaitForFishingScreen()
 {
 	while ( not IsImgTagInRect( "LeftUpperCornedDefImg", 4, 7, 34, 37 ) )
 		sleep, 50
+	
+	WriteLineToLogfile( "{WaitForFishingScreen}", "Screen is clear for fishing"  )
 }
 
 CheckingEnergyStatusAndFeeding()
@@ -334,11 +344,17 @@ HookTheFish( isSpinningUsed )
 	global gPauseFlag
 
 	CastAgain := 1
+	FishOnHook := 0
 
-	While ( CastAgain and (not gPauseFlag) ) 
+	WriteLineToLogfile( "{HookTheFish}", "Enter" )
+	
+	While ( CastAgain and (not FishOnHook) and (not gPauseFlag) ) 
 	{
 		CastAgain := 0
 		CastTheLine()
+
+		WriteLineToLogfile( "{HookTheFish}", "Line casted" )
+
 		gInfoCastCount++
 		GoSub, UpdateInfoGui
 
@@ -350,6 +366,9 @@ HookTheFish( isSpinningUsed )
 			Click down
 
 			FishOnHook := 0
+
+			WriteLineToLogfile( "{HookTheFish}", "Wait for strike on spinning" )
+
 			while ( (not FishOnHook) and (not CastAgain) )
 			{
 				FishOnHook := IsPullingBarOn()
@@ -357,12 +376,14 @@ HookTheFish( isSpinningUsed )
 				If ( CastAgain ) 
 					Click up
 			}
+			WriteLineToLogfile( "{HookTheFish}", "FishOnHook = " . FishOnHook . "   CastAgain = " . CastAgain . "   gPauseFlag = " . gPauseFlag )
 		}
 	}
 
 	If ( not isSpinningUsed )
 		FishOnHook := WaitForStrike()
 		
+	WriteLineToLogfile( "{HookTheFish}", "Exit" )
 	Return FishOnHook
 }
 
@@ -545,6 +566,7 @@ CastTheLine()
 		if ( CheckForLvlUp() )
 		{
 			Sleep, 500
+			WriteLineToLogfile( "{CastTheLine}", "-> WaitForFishingScreen"  )
 			WaitForFishingScreen()
 		}
 		FindImgPosInRect( "CastBtnTag", CastBtnX, CastBtnY, 480, 480, 600, 530 )
@@ -584,6 +606,8 @@ ResultOfFishingDetermination()
 	global gInfoLost
 	global gInfoTreasuresCatched
 
+	WriteLineToLogfile( "{ResultOfFishingDetermination}", "Enter" )
+	
 	PullingResult := -1
 	While (PullingResult = -1)
 	{
@@ -609,6 +633,7 @@ ResultOfFishingDetermination()
 		}
 	}
 	WriteLineToDatafile( PullingResult, "`n`n" )
+	WriteLineToLogfile( "{ResultOfFishingDetermination}", "Exit" )
 }
 
 ManageFishcage()
@@ -663,9 +688,9 @@ LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorn
 	Return TagInRectState
 }
 
-FindImgPosInRect( ImgTagStr, ByRef ImgTagX, ByRef ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
+FindImgPosInRect( ImgTagStr, ByRef ImgTagX, ByRef ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, Tolerance = 10 )
 {
-	Imagesearch, ImgTagX, ImgTagY, X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *10 *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
+	Imagesearch, ImgTagX, ImgTagY, X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *%Tolerance% *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
 
 	If ( ImgTagX > 0 )
 		TagFound := 1
@@ -742,7 +767,9 @@ IsCollectionCatched()
 
 IsMessageOn() 
 {
-	MsgResult := FindImgPosInRect( "InfoOkBtn", OkBtnX, OkBtnY, 250, 250, 450, 450 )
+	WriteLineToLogfile( "{IsMessageOn}", "Searching for Ok button" )
+
+	MsgResult := FindImgPosInRect( "InfoOkBtn", OkBtnX, OkBtnY, 250, 250, 450, 450, 50 )
 	If ( MsgResult )
 	{
 		WriteLineToLogfile( "{IsMessageOn}", "Message detected. Ok button on " . OkBtnX . ", " . OkBtnY )
@@ -845,7 +872,9 @@ GetGameWindowDimensions()
 
 WriteLineToLogfile(CalledFromAddress = "", StringToWrite = "")
 {
-	FileAppend, %A_NowUTC% :: %CalledFromAddress% - %StringToWrite%`n, %A_ScriptDir%\Report_Run_%A_Now%.log
+	global gDebugFile
+	
+	FileAppend, %A_NowUTC% :: %CalledFromAddress% - %StringToWrite%`n, %gDebugFile%
 }
 
 WriteLineToDatafile(PullingResult, PullingPattern)
