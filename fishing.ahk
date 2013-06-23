@@ -255,10 +255,23 @@ InitGlobalSettingsVars()
 
 WaitForFishingScreen()
 {
-	while ( not IsImgTagInRect( "LeftUpperCornedDefImg", 4, 7, 34, 37 ) )
-		sleep, 50
+	i := 0
+	ColorTolerance := 10
+	LeftCornerPearlFound := IsImgTagInRect( "LeftUpperCornedDefImg", 4, 7, 34, 37, ColorTolerance )
 	
-	WriteLineToLogfile( "{WaitForFishingScreen}", "Screen is clear for fishing"  )
+	while ( not LeftCornerPearlFound )
+	{
+		sleep, 50
+		i++
+		If ( i > 20 )
+		{
+			i := 0
+			ColorTolerance := ColorTolerance + 10
+		}
+		LeftCornerPearlFound := IsImgTagInRect( "LeftUpperCornedDefImg", 4, 7, 34, 37, ColorTolerance )
+	}
+	
+	WriteLineToLogfile( "{WaitForFishingScreen}", "Screen is clear for fishing. Сolorolerance = " . ColorTolerance  )
 }
 
 CheckingEnergyStatusAndFeeding()
@@ -679,9 +692,9 @@ isFishInCage()
 	Return ( not isImgTagInRect( "EmptyFishcageTag", 580, 200, 680, 240 ) )
 }
 
-isImgTagInRect( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
+isImgTagInRect( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, ColorTolerance = 10 )
 {
-	Return FindImgPosInRect( ImgTagStr, ImgTagX, ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y )
+	Return FindImgPosInRect( ImgTagStr, ImgTagX, ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, ColorTolerance )
 }
 
 LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, dx=5, dy=5 )
@@ -818,7 +831,7 @@ SetupUpperLeftCorner()
 {
 	global WindowWidth, WindowHeight, UpperLeftCornerX, UpperLeftCornerY
 	
-	Imagesearch, ImgX, ImgY, 1, 1, WindowWidth, WindowHeight, *10 *Trans0xFF0000 %A_ScriptDir%\Images\LeftUpperCornedDefImg.png
+	Imagesearch, ImgX, ImgY, 1, 1, WindowWidth, WindowHeight, *30 *Trans0xFF0000 %A_ScriptDir%\Images\LeftUpperCornedDefImg.png
 	UpperLeftCornerX := ImgX - 4
 	UpperLeftCornerY := ImgY - 7
 	WriteLineToLogfile( "{SetupUpperLeftCorner}", "Upper left corner on " . UpperLeftCornerX ", " . UpperLeftCornerY )
