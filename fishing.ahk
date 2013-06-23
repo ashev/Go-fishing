@@ -178,7 +178,7 @@ UpdateFishcageCapacity:
 	gSettingFishcageCapacity := guiFishCageCapacity
 	
 	GoSub, UpdateFishcageProgress
-		
+	SaveCurrentSettings()	
 Return
 
 UpdateFishcageProgress:
@@ -203,7 +203,7 @@ UpdatePullingSettings:
 	GuiControl,,SettingLeftPullingLimitText, %gSettingLeftPullingLimit%
 	GuiControl,,SettingRightPullingLimitText, %gSettingRightPullingLimit%
 	GuiControl,,SettingAgressivityText, %gSettingAgressivity%
-
+	SaveCurrentSettings()
 Return
 
 UpdateInfoGui:
@@ -244,11 +244,37 @@ InitGlobalInfoVars()
 InitGlobalSettingsVars()
 {
 	global gSettingUsingSpinning     := 0
-	global gSettingFishcageCapacity  := 50
-	global gSettingLeftPullingLimit  := 4
-	global gSettingRightPullingLimit := 16
-	global gSettingAgressivity       := 3
+	LoadStoredSettings()
+}
 
+SaveCurrentSettings()
+{
+	global gSettingLeftPullingLimit  
+	global gSettingRightPullingLimit 
+	global gSettingAgressivity       
+	global gSettingFishcageCapacity  
+	global IniFile
+	IniFile = %A_ScriptDir%\fishing.ini
+
+	IniWrite, %gSettingLeftPullingLimit%, %IniFile%, Default, LeftPullingLimit
+	IniWrite, %gSettingRightPullingLimit%, %IniFile%, Default, RightPullingLimit
+	IniWrite, %gSettingAgressivity%, %IniFile%, Default, Agressivity
+	IniWrite, %gSettingFishcageCapacity%, %IniFile%, Default, FishcageCapacity
+}
+
+LoadStoredSettings()
+{
+	global gSettingLeftPullingLimit  
+	global gSettingRightPullingLimit 
+	global gSettingFishcageCapacity  
+	global gSettingAgressivity       
+	global IniFile
+	IniFile = %A_ScriptDir%\fishing.ini
+
+	IniRead, gSettingLeftPullingLimit, %IniFile%, Default, LeftPullingLimit, 4
+	IniRead, gSettingRightPullingLimit, %IniFile%, Default, RightPullingLimit, 18
+	IniRead, gSettingAgressivity, %IniFile%, Default, Agressivity, 3
+	IniRead, gSettingFishcageCapacity, %IniFile%, Default, FishcageCapacity, 50
 }
 
 ; ======================== Energy management ====================================================
