@@ -10,10 +10,13 @@
 
 	InitGlobalInfoVars()
 	InitGlobalSettingsVars()
-	FindAndActivateGameWindow()
-	GetGameWindowDimensions()
-	SetupUpperLeftCorner()
 
+	KeywordInBrowserTitle := "- Google Chrome"
+	; KeywordInBrowserTitle := "- Opera"
+	; KeywordInBrowserTitle := "- Windows Internet"
+
+	ManageGameWindow(KeywordInBrowserTitle)
+	
 	GoSub, ShowGui
 	
 Return
@@ -22,9 +25,7 @@ StartFishing:
 
 	SetFishingBtnState( 0 )
 
-	FindAndActivateGameWindow()
-	GetGameWindowDimensions()
-	SetupUpperLeftCorner()
+	ManageGameWindow(KeywordInBrowserTitle)	
 	ManageFishcage()
 	
 	While( not gPauseFlag )
@@ -71,6 +72,12 @@ ExitApp
 
 ; ======================== Body end ====================================================
 
+ManageGameWindow(KeywordInBrowserTitle)
+{
+	FindAndActivateGameWindow(KeywordInBrowserTitle)
+	GetGameWindowDimensions(KeywordInBrowserTitle)
+	SetupUpperLeftCorner()
+}
 
 ; ======================== GUI ====================================================
 
@@ -118,7 +125,7 @@ ShowGui:
 	Gui, Tab, 2, 1
 	
 	Gui, Add, Text, x15 y40 w100 h15, Fishcage capacity
-	Gui, Add, DropDownList, x115 y35 w50 h21 R4 Choose1 vguiFishCageCapacity gUpdateFishcageCapacity, 50|75|100|150
+	Gui, Add, DropDownList, x115 y35 w50 h21 R4 vguiFishCageCapacity gUpdateFishcageCapacity Choose%FishcageCapacityIndex%, 50|75|100|150
 
 	Gui, Add, GroupBox, x15 y65 w240 h185, Pulling
 	Gui, Add, Text, x30 y85 w45 h15, Left limit
@@ -275,6 +282,22 @@ LoadStoredSettings()
 	IniRead, gSettingRightPullingLimit, %IniFile%, Default, RightPullingLimit, 18
 	IniRead, gSettingAgressivity, %IniFile%, Default, Agressivity, 3
 	IniRead, gSettingFishcageCapacity, %IniFile%, Default, FishcageCapacity, 50
+
+	; GuiControl,,guiFishCageCapacity, "50|75|100||150"
+}
+
+FishcageCapacityIndex( Capacity )
+{
+	If ( Capacity = 75 )
+		CapacityIndex := 2
+	Else If ( Capacity = 100 )
+		CapacityIndex := 3
+	Else If ( Capacity = 150 )
+		CapacityIndex := 4
+	Else 
+		CapacityIndex := 1
+		
+	Return CapacityIndex
 }
 
 ; ======================== Energy management ====================================================
@@ -483,6 +506,7 @@ PullingTheFish( LeftPullingLimit, RightPullingLimit, Agressivity )
 
 		PullingPattern := PullingPattern . PullingPatternStr(RodOverloadState, PrevRodOverloadState, PullingDirection, PullingProgress, ProgressLogStr, LeftPullingLimit, RightPullingLimit) 
 		PrevOverloadState := RodOverloadState
+		Sleep, 100
 	}
 	WriteLineToLogfile( "{PullingTheFish}", "Pulling finished" )
 	Return PullingPattern
@@ -875,9 +899,8 @@ Y(yCoord)
 	return yCoord + UpperLeftCornerY
 }
 
-FindAndActivateGameWindow()
+FindAndActivateGameWindow(KeywordInBrowserTitle)
 {
-	KeywordInBrowserTitle := "- Google Chrome"
 	KeywordInGameTabTitle := "Go Fishing"
 
 	SetTitleMatchMode, 2
@@ -895,11 +918,11 @@ FindAndActivateGameWindow()
 	}
 }
 
-GetGameWindowDimensions()
+GetGameWindowDimensions(KeywordInBrowserTitle)
 {
 	Global WindowWidth, WindowHeight
 	
-	WinGetPos, , , WindowWidth, WindowHeight, - Google Chrome
+	WinGetPos, , , WindowWidth, WindowHeight, %KeywordInBrowserTitle%
 
 	If (WindowWidth) {
 		WriteLineToLogfile( "{GetGameWindowDimensions}", "Window size is " . WindowWidth . ", " . WindowHeight)
