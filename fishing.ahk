@@ -8,14 +8,11 @@
 	WriteLineToLogfile( A_LineNumber, "=========================" )
 	WriteLineToLogfile( A_LineNumber, "====== Starting up ======" )
 
+	LoadStoredSettings()
 	InitGlobalInfoVars()
 	InitGlobalSettingsVars()
 
-	KeywordInBrowserTitle := "- Google Chrome"
-	; KeywordInBrowserTitle := "- Opera"
-	; KeywordInBrowserTitle := "- Windows Internet"
-
-	ManageGameWindow(KeywordInBrowserTitle)
+	ManageGameWindow()
 	
 	GoSub, ShowGui
 	
@@ -25,7 +22,7 @@ StartFishing:
 
 	SetFishingBtnState( 0 )
 
-	ManageGameWindow(KeywordInBrowserTitle)	
+	ManageGameWindow()	
 	ManageFishcage()
 	
 	While( not gPauseFlag )
@@ -72,11 +69,32 @@ ExitApp
 
 ; ======================== Body end ====================================================
 
-ManageGameWindow(KeywordInBrowserTitle)
+ManageGameWindow()
 {
-	FindAndActivateGameWindow(KeywordInBrowserTitle)
-	GetGameWindowDimensions(KeywordInBrowserTitle)
-	SetupUpperLeftCorner()
+	BrowserName := GetBrowserTitleString()
+	If ( FindAndActivateGameWindow( BrowserName ) )
+	{
+		GetGameWindowDimensions( BrowserName )
+		SetupUpperLeftCorner()
+	}
+	Else
+	{
+		MsgBox, Set your browser!
+	}
+}
+
+GetBrowserTitleString()
+{
+	global gSettingBrowser
+	
+	If ( gSettingBrowser = 2 or gSettingBrowser = "Microsoft IE" ) 
+		BrowserTitleString := "- Windows Internet"
+	else if ( gSettingBrowser = 3  or gSettingBrowser = "Opera" ) 
+		BrowserTitleString := "- Opera"
+	else
+		BrowserTitleString := "- Google Chrome"
+
+	Return BrowserTitleString
 }
 
 ; ======================== GUI ====================================================
@@ -142,11 +160,13 @@ ShowGui:
 
 	Gui, Tab, 3, 1
 	
-	Gui, Add, Checkbox, x15 y40 w205 h15 Disabled, Tackle integrity monitoring
-	Gui, Add, GroupBox, x15 y60 w135 h70, When fishcage is full
-	Gui, Add, Radio, x25 y75 w100 h15 Checked1, Sell fish
-	Gui, Add, Radio, x25 y90 w100 h15 Disabled, Cut stakes
-	Gui, Add, Radio, x25 y105 w100 h15 Disabled, Pause fishing
+	Gui, Add, Text, x15 y40 w45 h15, Browser
+	Gui, Add, DropDownList, x65 y35 w130 h21 R4 vSettingBrowser gUpdateBrowser Choose%gSettingBrowser%, Google Chrome|Microsoft IE|Opera|Firefox
+	Gui, Add, Checkbox, x15 y60 w205 h15 Disabled, Tackle integrity monitoring
+	Gui, Add, GroupBox, x15 y80 w135 h70, When fishcage is full
+	Gui, Add, Radio, x25 y95 w100 h15 Checked1, Sell fish
+	Gui, Add, Radio, x25 y110 w100 h15 Disabled, Cut stakes
+	Gui, Add, Radio, x25 y125 w100 h15 Disabled, Pause fishing
 
 	Gui, Show, x%guiX% y%guiY% w270 h265, Go-Fishing trainer
 	
@@ -180,11 +200,22 @@ GetTackleName( TackleType )
 
 UpdateFishcageCapacity:
 
-	GuiControlGet,guiFishCageCapacity,,guiFishCageCapacity
+	GuiControlGet,guiFishcageCapacity,,guiFishcageCapacity
 	
-	gSettingFishcageCapacity := guiFishCageCapacity
+	gSettingFishcageCapacity := guiFishcageCapacity
+	
+	SaveCurrentSettings()	
 	
 	GoSub, UpdateFishcageProgress
+	
+Return
+
+UpdateBrowser:
+
+	GuiControlGet,SettingBrowser,,SettingBrowser
+	
+	gSettingBrowser := SettingBrowser
+	
 	SaveCurrentSettings()	
 Return
 
@@ -251,7 +282,6 @@ InitGlobalInfoVars()
 InitGlobalSettingsVars()
 {
 	global gSettingUsingSpinning     := 0
-	LoadStoredSettings()
 }
 
 SaveCurrentSettings()
@@ -259,14 +289,16 @@ SaveCurrentSettings()
 	global gSettingLeftPullingLimit  
 	global gSettingRightPullingLimit 
 	global gSettingAgressivity       
-	global gSettingFishcageCapacity  
+	global gSettingFishcageCapacity
+	global gSettingBrowser
 	global IniFile
 	IniFile = %A_ScriptDir%\fishing.ini
-
+	
 	IniWrite, %gSettingLeftPullingLimit%, %IniFile%, Default, LeftPullingLimit
 	IniWrite, %gSettingRightPullingLimit%, %IniFile%, Default, RightPullingLimit
 	IniWrite, %gSettingAgressivity%, %IniFile%, Default, Agressivity
 	IniWrite, %gSettingFishcageCapacity%, %IniFile%, Default, FishcageCapacity
+	IniWrite, %gSettingBrowser%, %IniFile%, Default, Browser
 }
 
 LoadStoredSettings()
@@ -275,13 +307,15 @@ LoadStoredSettings()
 	global gSettingRightPullingLimit 
 	global gSettingFishcageCapacity  
 	global gSettingAgressivity       
+	global gSettingBrowser
 	global IniFile
 	IniFile = %A_ScriptDir%\fishing.ini
 
 	IniRead, gSettingLeftPullingLimit, %IniFile%, Default, LeftPullingLimit, 4
-	IniRead, gSettingRightPullingLimit, %IniFile%, Default, RightPullingLimit, 18
+	IniRead, gSettingRightPullingLimit, %IniFile%, Default, RightPullingLimit, 16
 	IniRead, gSettingAgressivity, %IniFile%, Default, Agressivity, 3
 	IniRead, gSettingFishcageCapacity, %IniFile%, Default, FishcageCapacity, 50
+	IniRead, gSettingBrowser, %IniFile%, Default, Browser, 1
 
 	; GuiControl,,guiFishCageCapacity, "50|75|100||150"
 }
@@ -425,6 +459,7 @@ HookTheFish( isSpinningUsed )
 			While ( not IsSpinningBarOn() )
 				Sleep, 100
 
+			Sleep, 500
 			Click down
 
 			FishOnHook := 0
@@ -758,7 +793,7 @@ LocateImgAndClick( ImgTagStr, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorn
 
 FindImgPosInRect( ImgTagStr, ByRef ImgTagX, ByRef ImgTagY, RectCorner1X, RectCorner1Y, RectCorner2X, RectCorner2Y, Tolerance = 10 )
 {
-	Imagesearch, ImgTagX, ImgTagY, X(ectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *%Tolerance% *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
+	Imagesearch, ImgTagX, ImgTagY, X(RectCorner1X), Y(RectCorner1Y), X(RectCorner2X), Y(RectCorner2Y), *%Tolerance% *Trans0xFF0000 %A_ScriptDir%\Images\%ImgTagStr%.png
 
 	If ( ImgTagX > 0 )
 		TagFound := 1
@@ -901,21 +936,32 @@ Y(yCoord)
 
 FindAndActivateGameWindow(KeywordInBrowserTitle)
 {
+	GameWinActivationFlag := 0
 	KeywordInGameTabTitle := "Go Fishing"
 
 	SetTitleMatchMode, 2
 	WinActivate, %KeywordInBrowserTitle%
-
-	Loop, 15
+	
+	IfWinActive, %KeywordInBrowserTitle%
 	{
-		WinGetTitle, ActiveWindowTitle, A  
+		Loop, 15
+		{
+			WinGetTitle, ActiveWindowTitle, A  
 
-		If ( InStr(ActiveWindowTitle, KeywordInGameTabTitle) > 0 )
-			break 
-
-		Send ^{Tab}
-		Sleep, 100
+			If ( InStr(ActiveWindowTitle, KeywordInGameTabTitle) > 0 )
+			{
+				GameWinActivationFlag := 1
+				break 
+			}
+			Send ^{Tab}
+			Sleep, 100
+		}
 	}
+	else
+	{
+		MsgBox, Can't find game window!
+	}
+	Return 	GameWinActivationFlag
 }
 
 GetGameWindowDimensions(KeywordInBrowserTitle)
